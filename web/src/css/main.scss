@@ -1,5 +1,9 @@
+@import "./vars.scss";
+
 body {
-  background-color: black;
+  background-color: $background;
   margin: 8px;
-  color: white;
+  font-size: 1.25em;
+  color: $highlight;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }

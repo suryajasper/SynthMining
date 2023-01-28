@@ -10,24 +10,36 @@ app.get('/', (req, res) => {
 });
 
 app.post('/createUser', async (req, res) => {
+  console.log(req.query);
+
+  console.log(`--CREATE USER ${req.query.email}`);
+
   const userSetup: mongoose.Document = new User({
-    name: `${req.body.firstName} ${req.body.lastName}`,
-    email: req.body.email,
-    password: req.body.password,
+    name: `${req.query.firstName} ${req.query.lastName}`,
+    email: req.query.email,
+    passHash: req.query.password,
   });
 
   const { _id: uid } = await userSetup.save();
+
+  console.log('--CREATE USER RESULTED SUCCESS');
 
   return res.status(200).send({ uid });
 });
 
 app.post('/authenticateUser', async (req, res) => {
-  const indexedUser: any = await User.findOne({ email: req.body.email }).exec();
-  if (!indexedUser) 
-    return res.status(400).send({err: 'no user found with email'});
+  console.log(`--AUTH USER ${req.query.email}`);
 
-  if (indexedUser.validatePassword(req.body.password))
+  const indexedUser: any = await User.findOne({ email: req.query.email }).exec();
+  if (!indexedUser) {
+    // console.log('--AUTH USER FAILED: no user found with email ' + req.query.email);
+    return res.status(400).send({err: 'no user found with email'});
+  }
+
+  if (indexedUser.validatePassword(req.query.password)) {
+    console.log('--AUTH USER FAILED: invalid password');
     return res.status(200).send({uid: indexedUser._id});
+  }
 
   res.status(400).send({err: 'wrong password'});
 });

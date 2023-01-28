@@ -21,14 +21,14 @@ const UserSchema: mongoose.Schema = new mongoose.Schema({
 UserSchema.pre('save', function(next) {
   // initialize salt and hash password when a user is created
   this.salt = crypto.randomBytes(14).toString('hex');
-  this.passHash = crypto.pbkdf2Sync(this.passHash, this.salt, 50_000, 512, 'sha512').toString('hex');
+  this.passHash = crypto.pbkdf2Sync(this.passHash, this.salt, 10_000, 512, 'sha512').toString('hex');
   
   next();
 });
 
 UserSchema.methods.validatePassword = function(pwd)  {
   // validate user's password by comparing generated hash with stored hash
-  const hash : crypto.BinaryLike = crypto.pbkdf2Sync(pwd, this.salt, 50_000, 512, 'sha512').toString('hex');
+  const hash : crypto.BinaryLike = crypto.pbkdf2Sync(pwd, this.salt, 10_000, 512, 'sha512').toString('hex');
   return this.passHash === hash;
 };
 

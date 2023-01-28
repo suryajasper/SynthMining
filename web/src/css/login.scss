@@ -1,0 +1,90 @@
+@import './vars.scss';
+
+body {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hstack {
+  display: flex;
+  flex-direction: row;
+
+  > *:nth-child(1) {
+    margin-left: 0 !important;
+  }
+  > *:nth-child(2) {
+    margin-right: 0 !important;
+  }
+}
+
+.auth-popup {
+  border-radius: 8px;
+  background-color: $accent;
+}
+
+.auth-content {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+
+  > * {
+    margin: 8px;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    margin: 8px;
+
+    label {
+      margin-bottom: 4px;
+    }
+
+    input.auth-in {
+      margin-top: 4px;
+    }
+  }
+}
+
+input {
+  font-size: 1em;
+  background-color: $primary-2;
+  color: $accent;
+  outline: none;
+  border: 0;
+  padding: 8px 12px 8px 12px;
+  border-radius: 4px;
+  transition: 0.5s;
+
+  &:hover {
+    background-color: $primary-1;
+    transition: 0.5s;
+  }
+}
+
+button {
+  font-size: 1em;
+  background-color: $primary-2;
+  color: $accent;
+  outline: none;
+  border: 0;
+  padding: 8px 12px 8px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.5s;
+
+  &:disabled {
+    background-color: rgba($primary-2, 0.5);
+    cursor: not-allowed;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: $primary-1;
+    transition: 0.5s;
+  }
+}
