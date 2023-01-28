@@ -14,8 +14,8 @@ const InputGroup = {
 
 export default class Login {
   constructor(vnode) {
+    this.signup = vnode.attrs.signup;
     this.valid = false;
-    this.signup = true;
 
     this.res = {
       firstName: '',
@@ -41,10 +41,13 @@ export default class Login {
   }
 
   validate() {
-    this.valid = this.res.firstName && this.res.lastName && this.res.email && 
-                 this.res.email.includes('@') && this.res.email.includes('.') &&
-                 this.res.password && this.res.confirmPassword && 
-                 this.res.password === this.res.confirmPassword;
+    if (this.signup)
+      this.valid = this.res.firstName && this.res.lastName && this.res.email && 
+                  this.res.email.includes('@') && this.res.email.includes('.') &&
+                  this.res.password && this.res.confirmPassword && 
+                  this.res.password === this.res.confirmPassword;
+    else
+      this.valid = this.res.email && this.res.password;
   }
 
   view(vnode) {

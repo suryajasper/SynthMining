@@ -32,15 +32,16 @@ app.post('/authenticateUser', async (req, res) => {
 
   const indexedUser: any = await User.findOne({ email: req.query.email }).exec();
   if (!indexedUser) {
-    // console.log('--AUTH USER FAILED: no user found with email ' + req.query.email);
+    console.log('--AUTH USER FAILED: no user found with email ' + req.query.email);
     return res.status(400).send({err: 'no user found with email'});
   }
 
   if (indexedUser.validatePassword(req.query.password)) {
-    console.log('--AUTH USER FAILED: invalid password');
+    console.log('--AUTH USER SUCCESS');
     return res.status(200).send({uid: indexedUser._id});
   }
-
+  
+  console.log('--AUTH USER FAILED: invalid password');
   res.status(400).send({err: 'wrong password'});
 });
 
