@@ -2,36 +2,35 @@ import torch
 import torch.nn
 from PIL import Image
 import torchvision.transforms as transforms
+import torchvision.transforms.functional as TF
 import matplotlib.pyplot as plt
 
-def resizer(file_name):
-    return_array = []
-    file1 = open(file_name, 'r')
+# takes a list of files to convert
+def resizer(file_list, image_size):
+    out_tensor = torch.zeros(3)
+    file1 = open(file_list, 'r')
     jpegs = file1.readlines()
     print(jpegs)
     for x in jpegs:
         y = x.split('\n')
         image = Image.open(y[0])
-        pil_to_torch = transforms.PILToTensor()
-        output_array = pil_to_torch(image)
-        sizing = list(output_array.size())
-        z = 100000
-        for i in range(1,3):
-            if sizing[i] < z:
-                z = sizing[i]
-        resizer = transforms.Resize([z, z])
-        output_array = resizer(output_array)
-        output_array = torch.flatten(output_array)
-        tuple1 = z,output_array
-        return_array.append(tuple1)
+        scaled = TF.resize(image, size=image_size) # scale image
+        minDim = min(scaled.size) # find min dimension
+        cropped = TF.center_crop(scaled, output_size=minDim) # use min dimension to crop
+        
+        # transform from image to tensor
+        to_tensor = transforms.Compose([transforms.PILToTensor()])
+        out_tensor = to_tensor(cropped)
+
     file1.close()
-    return(return_array)
+    return out_tensor
     
 
-def image_displays(array_input):
-        torch_to_pil = transforms.ToPILImage()
-        fig1 = plt.imshow(torch_to_pil(array_input[1]))
+def image_displays(in_tensor):
+        transform = transforms.ToPILImage()
+        fig1 = plt.imshow(transform(in_tensor))
         plt.show()
-print(resizer("testjpegs"))
+        
 
+print(image_displays(resizer('testjpegs.txt', 64))) # test image resize and conversion; display 1
 
