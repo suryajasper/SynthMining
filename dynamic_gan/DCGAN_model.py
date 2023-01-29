@@ -276,7 +276,7 @@ for epoch in range(num_epochs):
         # Classify all fake batch with D
         output = netD(fake.detach())
         # Calculate D's loss on the all-fake batch
-        errD_fake = criterion(output, label)
+        errD_fake = criterion(output.squeeze(1).squeeze(1).squeeze(1), label )
         # Calculate the gradients for this batch, accumulated (summed) with previous gradients
         errD_fake.backward()
         D_G_z1 = output.mean().item()
