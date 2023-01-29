@@ -34,7 +34,7 @@ torch.manual_seed(manualSeed)
 channels = 3 # (nc) <MAKE CONSTANT>
 
 # Size of z latent vector (i.e. size of generator input)
-noise_size = 100 # (nz) <RANDOM 1D TENSOR>
+noise_size = 156 # (nz) <RANDOM 1D TENSOR>
 
 # Size of training images, feature maps in generator and discriminator respectively (LEN^2)
 image_size = 64 # (ngf, ndf, image_size) <CHANGE TO LEN FROM ADARSH>
@@ -217,15 +217,16 @@ real_label = 1.
 fake_label = 0.
 
 # Number of training epochs
-num_epochs = 5
+num_epochs = 40
 
 ## ** STREAMING IN TRAINING DATA ** 
 # G(z) <ON REAL>
 file_list = "./trainer_set.txt"
-real_set = mf.to_tensor(file_list, image_size=image_size)
+test_size = 7019
+real_set = mf.to_tensor(file_list, image_size=image_size, test_size=test_size)
 
 # convert real_set into batches
-batch_size = 10
+batch_size = 20
 batchs = len(real_set) // batch_size
 img_batches = mf.to_batches(real_set, batch_size)
 
@@ -257,9 +258,10 @@ for epoch in range(num_epochs):
         # target tensor
         label = torch.full((b_size,), real_label, dtype=torch.float, device=device) 
         # Forward pass real batch through D
-        print('target', label)
+        
         output = netD(real_cpu).view(-1)
-        print('test', output)
+        print('Discriminator from real target: ', label)
+        print('Discriminator from real test: ', output)
         # Calculate loss on all-real batch
         errD_real = criterion(output, label)
         # Calculate gradients for D in backward pass
@@ -275,6 +277,8 @@ for epoch in range(num_epochs):
         label.fill_(fake_label)
         # Classify all fake batch with D
         output = netD(fake.detach())
+        print('Generator from fake target: ', label)
+        print('Generator from fake test: ', output)
         # Calculate D's loss on the all-fake batch
         errD_fake = criterion(output.squeeze(1).squeeze(1).squeeze(1), label )
         # Calculate the gradients for this batch, accumulated (summed) with previous gradients
@@ -294,6 +298,8 @@ for epoch in range(num_epochs):
         label.fill_(real_label)  # fake labels are real for generator cost
         # Since we just updated D, perform another forward pass of all-fake batch through D
         output = netD(fake).view(-1)
+        print('Real Values: ', label)
+        print('Generator from fake test: ', output)
         # Calculate G's loss based on this output
         errG = criterion(output, label)
         # Calculate gradients for G
@@ -303,9 +309,9 @@ for epoch in range(num_epochs):
         optimizerG.step()
 
         # Output training stats
-        if i % 50 == 0:
+        if i % 10 == 0:
             print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f'
-                  % (epoch, num_epochs, i, len(img_batches),
+                  % (epoch+8, num_epochs, i, len(img_batches),
                      errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
 
         # Save Losses for plotting later
