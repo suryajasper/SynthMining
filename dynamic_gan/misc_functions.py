@@ -6,15 +6,15 @@ import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
 import matplotlib.pyplot as plt
 
-import image_transform as it # adarsh code
+#import image_transform as it # adarsh code
 
 
 # user it.resizer(filename)
-def to_tensor(file_list, image_size):
+def to_tensor(file_list, image_size, test_size):
     img_dir_name = './dynamic_gan/celeba/img_align_celeba'
     tensors = []
     file1 = open(file_list, 'r')
-    for filename in file1.readlines()[:1000]:
+    for filename in file1.readlines()[:test_size]:
         filename = filename.strip()
         out_tensor = torch.zeros(3)
         image = Image.open(os.path.join(img_dir_name,filename))
@@ -23,8 +23,8 @@ def to_tensor(file_list, image_size):
         cropped = TF.center_crop(scaled, output_size=minDim) # use min dimension to crop
     
         # transform from image to tensor
-        to_tensor = transforms.Compose([transforms.PILToTensor()])
-        out_tensor = to_tensor(cropped)
+        toTensor = transforms.Compose([transforms.PILToTensor()])
+        out_tensor = toTensor(cropped)
 
         tensors.append(out_tensor)
     file1.close()
