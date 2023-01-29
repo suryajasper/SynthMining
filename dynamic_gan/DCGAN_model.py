@@ -39,6 +39,11 @@ noise_size = 100 # (nz) <RANDOM 1D TENSOR>
 # Size of training images, feature maps in generator and discriminator respectively (LEN^2)
 image_size = 64 # (ngf, ndf, image_size) <CHANGE TO LEN FROM ADARSH>
 
+# Size of feature maps in generator
+ngf = 64
+
+# Size of feature maps in discriminator
+ndf = 64
 
 # ** WEIGHT INITIALIZATION **
 def weights_init(m):
@@ -58,45 +63,45 @@ class Generator(nn.Module):
             # input is Z, going into a convolution 
             nn.ConvTranspose2d(
                 in_channels=noise_size, 
-                out_channels=image_size * 8, 
+                out_channels=ngf * 8, 
                 kernel_size=4, 
                 stride=1, 
                 padding=0, 
                 bias=False
             ),
-            nn.BatchNorm2d(image_size * 8),
+            nn.BatchNorm2d(ngf * 8),
             nn.ReLU(True),
             # state size. (gen_dimesions*8) x 4 x 4
             nn.ConvTranspose2d(
-                in_channels=image_size * 8, 
-                out_channels=image_size * 4,
+                in_channels=ngf * 8, 
+                out_channels=ngf * 4,
                 kernel_size=4, 
                 stride=2, 
                 padding=1, bias=False),
-            nn.BatchNorm2d(image_size * 4),
+            nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
             # state size. (gen_dimesions*4) x 8 x 8
             nn.ConvTranspose2d(
-                in_channels=image_size * 4, 
-                out_channels=image_size * 2,
+                in_channels=ngf * 4, 
+                out_channels=ngf * 2,
                 kernel_size=4, 
                 stride=2, 
                 padding=1, bias=False),
-            nn.BatchNorm2d(image_size * 2),
+            nn.BatchNorm2d(ngf * 2),
             nn.ReLU(True),
             # state size. (gen_dimesions*2) x 16 x 16
             nn.ConvTranspose2d(
-                in_channels=image_size * 2, 
-                out_channels=image_size, 
+                in_channels=ngf * 2, 
+                out_channels=ngf, 
                 kernel_size=4,
                 stride= 2, 
                 padding=1, 
                 bias=False),
-            nn.BatchNorm2d(image_size),
+            nn.BatchNorm2d(ngf),
             nn.ReLU(True),
             # state size. (gen_dimesions) x 32 x 32
             nn.ConvTranspose2d(
-                in_channels=image_size, 
+                in_channels=ngf, 
                 out_channels=channels, 
                 kernel_size=4, 
                 stride=2, 
@@ -120,7 +125,7 @@ class Discriminator(nn.Module):
             # input is (nc) x 64 x 64
             nn.Conv2d(
                 in_channels=channels, 
-                out_channels=image_size, 
+                out_channels=ndf, 
                 kernel_size=4, 
                 stride=2, 
                 padding=1, 
@@ -128,37 +133,37 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndvf) x 32 x 32
             nn.Conv2d(
-                in_channels=image_size, 
-                out_channels=image_size * 2, 
+                in_channels=ndf, 
+                out_channels=ndf * 2, 
                 kernel_size=4, 
                 stride=2, 
                 padding=1, 
                 bias=False),
-            nn.BatchNorm2d(image_size * 2),
+            nn.BatchNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*2) x 16 x 16
             nn.Conv2d(
-                in_channels=image_size * 2, 
-                out_channels=image_size * 4, 
+                in_channels=ndf * 2, 
+                out_channels=ndf * 4, 
                 kernel_size=4, 
                 stride=2, 
                 padding=1, 
                 bias=False),
-            nn.BatchNorm2d(image_size * 4),
+            nn.BatchNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*4) x 8 x 8
             nn.Conv2d(
-                in_channels=image_size * 4, 
-                out_channels=image_size * 8, 
+                in_channels=ndf * 4, 
+                out_channels=ndf * 8, 
                 kernel_size=4, 
                 stride=2, 
                 padding=1, 
                 bias=False),
-            nn.BatchNorm2d(image_size * 8),
+            nn.BatchNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*8) x 4 x 4
             nn.Conv2d(
-                in_channels=image_size * 8, 
+                in_channels=ndf * 8, 
                 out_channels=1, 
                 kernel_size=4, 
                 stride=1, 
@@ -216,12 +221,14 @@ num_epochs = 5
 
 ## ** STREAMING IN TRAINING DATA ** 
 # G(z) <ON REAL>
-real_dir = "<sample>" # CHANGE LATER
-real_set = mf.to_tensor(real_dir)
+file_list = "./trainer_set.txt"
+real_set = mf.to_tensor(file_list, image_size=image_size)
 
 # convert real_set into batches
-batch_size = len(real_set) // 10
+batch_size = 10
+batchs = len(real_set) // batch_size
 img_batches = mf.to_batches(real_set, batch_size)
+
 
 ## ** RECORD KEEPING ** 
 img_list = [] 
@@ -242,12 +249,17 @@ for epoch in range(num_epochs):
 
         ## TRAIN D INDEPENDANTLY (all real batch)
         netD.zero_grad() # reset gradients 
-        # tensor to pass
-        to_D = batch[0].to(device) 
+        # format batch
+        real_cpu = batch.to(device)
+        
+        b_size = real_cpu.size(0)
+        
         # target tensor
-        label = torch.full((batch_size,), real_label, dtype=torch.float, device=device) 
+        label = torch.full((b_size,), real_label, dtype=torch.float, device=device) 
         # Forward pass real batch through D
-        output = netD(to_D).view(-1)
+        print('target', label)
+        output = netD(real_cpu).view(-1)
+        print('test', output)
         # Calculate loss on all-real batch
         errD_real = criterion(output, label)
         # Calculate gradients for D in backward pass

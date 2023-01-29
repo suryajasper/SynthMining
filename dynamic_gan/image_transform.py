@@ -4,6 +4,7 @@ from PIL import Image
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
 import matplotlib.pyplot as plt
+import os
 
 # takes a list of files to convert
 def resizer(file_list, image_size):
@@ -32,5 +33,5 @@ def image_displays(in_tensor):
         plt.show()
         
 
-print(image_displays(resizer('testjpegs.txt', 64))) # test image resize and conversion; display 1
+# print(image_displays(resizer('testjpegs.txt', 64))) # test image resize and conversion; display 1
 
