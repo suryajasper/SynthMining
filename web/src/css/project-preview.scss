@@ -1,0 +1,68 @@
+@import './vars.scss';
+
+.projects-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1em;
+}
+
+.project-preview-container {
+  width: 400px;
+  background-color: $accent;
+  border-radius: 8px;
+}
+
+.project-preview-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+
+  span.project-title {
+    display: block;
+    font-weight: bold;
+    font-size: 1.5em;
+    color: $text-color;
+  }
+
+  .project-description {
+    font-size: 0.75em;
+    color: rgba($text-color, 0.65);
+  }
+
+  .project-thumbnails-list {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    max-width: 100%;
+
+    .project-thumbnail-img {
+      $thumbnail-size: 80px;
+
+      height: $thumbnail-size;
+      width: $thumbnail-size;
+
+      background: linear-gradient(to top right, $primary-1, $primary-2);
+      outline: none;
+      border: none;
+
+      border-radius: 6px;
+    }
+  }
+
+  .project-tags-list {
+    display: flex;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    
+    .project-tag-item {
+      font-size: 1em;
+      margin-right: 8px;
+      padding: 4px;
+      border-radius: 3px;
+      background-color: darken($accent, 20%);
+    }
+  }
+}

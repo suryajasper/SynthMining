@@ -1,5 +1,7 @@
 import m from 'mithril';
 import '../css/login.scss';
+import Cookies from '../utils/Cookies';
+import { fetchRequest } from '../utils/utils';
 
 const InputGroup = {
   view(vnode) {
@@ -29,13 +31,16 @@ export default class Login {
   authenticate() {
     console.log(this.signup ? 'createUser' : 'authenticateUser');
 
-    m.request(`http://localhost:2002/${this.signup ? 'createUser' : 'authenticateUser'}`, {
+    fetchRequest(`/${this.signup ? 'createUser' : 'authenticateUser'}`, {
       method: 'POST',
-      params: this.res,
+      body: this.res,
     })
       .then(res => {
-        if (res.uid)
-          console.log(res.uid);
+        if (res.uid) {
+          console.log('success! ' + res.uid);
+          Cookies.set('uid', res.uid, 2);
+          m.route.set('/main');
+        }
       })
       .catch(window.alert)
   }
@@ -51,7 +56,7 @@ export default class Login {
   }
 
   view(vnode) {
-    return m('div.auth-popup', 
+    return m('div.auth-body', m('div.auth-popup', 
       m('div.auth-content', [
         this.signup ? m('div.hstack', [
 
@@ -106,6 +111,6 @@ export default class Login {
           }
         }, this.signup ? 'Sign Up' : 'Log In'),
       ])
-    );
+    ));
   }
 }

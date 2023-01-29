@@ -1,6 +1,7 @@
 import m from 'mithril';
 import './css/main.scss';
 import Login from './views/login';
+import Main from './views/main';
 
 function LoginRouter() {
   return {
@@ -22,4 +23,5 @@ m.route(document.body, '/', {
   '/': Login,
   '/login': LoginRouter,
   '/signup': SignupRouter,
+  '/main': Main,
 })

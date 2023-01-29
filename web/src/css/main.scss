@@ -2,8 +2,11 @@
 
 body {
   background-color: $background;
-  margin: 8px;
   font-size: 1.25em;
-  color: $highlight;
+  color: $text-color;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.main-body {
+  padding: 8px;
 }
