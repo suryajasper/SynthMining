@@ -1,11 +1,25 @@
 import express from 'express';
+import multer from 'multer';
+
 import User from './models/user';
 import Project from './models/project';
 import mongoose, { Mongoose } from 'mongoose';
+import fs from 'fs';
+import path from 'path';
 
 const app = express();
 
+const upload = multer({
+  dest: "./temp/",
+});
+
+const TEMP_PATH : string = "./temp/"; 
+
+// handle json data
 app.use(express.json());
+
+// handle form data
+app.use(upload.array()); 
 
 app.get('/', (req, res) => {
   res.send('Hello World');
@@ -107,13 +121,48 @@ app.get('/getAllProjects', async (req, res) => {
   return res.status(200).json(allProjects);
 })
 
-app.post('/uploadImagesToProject', async (req, res) => {
+app.use((error, req, res, next) => {
+  console.log('This is the rejected field ->', error.field);
+});
+
+app.post('/uploadImageToProject', upload.single('imgfile'), async (req : any, res) => {
+  if (!req.body.projectId || !req.body.uid) return res.sendStatus(400).send('no project id');
+
+  const dirPath : string = `../../imgs/${req.query.projectId}`;
+
+  if (!fs.existsSync(dirPath))
+    fs.mkdirSync(dirPath);
+  
+  let numStored : Number = fs.readdirSync(dirPath).length;
+
+  let newName: string = 
+    numStored.toString().padStart(6, '0') + 
+    '.' + req.file.originalname.split('.').at(-1);
+  
+  let tempPath: string = path.join(TEMP_PATH, req.file.originalname);
+  let newPath: string = path.join(dirPath, newName);
+  
+  fs.renameSync(tempPath, newPath);
+
+  const currProj: any = await Project.findById(req.body.projectId).exec();
+
+  await Project.findByIdAndUpdate(req.body.projectId, {
+    $push: {
+      imgPaths: {
+        filePath: newPath,
+        authorId: req.body.uid,
+        validated: req.body.uid === currProj.authorId,
+      }
+    }
+  }).exec();
+  
+  res.status(200).send({numStored});
 
 });
 
 app.get('/getProject', async (req, res) => { 
 
-  console.log(`--RETRIEVING IMAGES from project ${req.query.projectId}`);
+  console.log(`--RETRIEVING PROJECT INFO from project ${req.query.projectId}`);
 
   if (!req.query.projectId || !req.query.uid)
     return res.status(400).send({err: 'missing project info'});
@@ -125,7 +174,7 @@ app.get('/getProject', async (req, res) => {
   if (!project)
     return res.status(400).send({err: 'project not found'});
   
-  return res.status(200).send(project.imgPaths);
+  return res.status(200).send(project);
 
 })
 

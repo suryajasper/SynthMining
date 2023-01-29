@@ -20,9 +20,12 @@
   "dependencies": {
     "express": "^4.18.2",
     "html-webpack-plugin": "^5.5.0",
+    "iwanthue": "^2.0.0",
     "mithril": "^2.2.2",
     "mongoose": "^6.9.0",
     "mongoose-unique-validator": "^3.1.0",
+    "multer": "^1.4.5-lts.1",
+    "query-string": "^8.1.0",
     "webpack": "^5.75.0"
   },
   "devDependencies": {

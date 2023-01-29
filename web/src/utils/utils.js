@@ -12,12 +12,15 @@ function fetchRequest(endpoint, { method, body, query }) {
       },
     };
 
+    let url = `http://localhost:2002${endpoint}`;
+
     if (method === 'POST')
       options.body = JSON.stringify(body || query);
-    else if (method === 'GET')
-      options.query = JSON.stringify(query || body);
+    else
+      url += '?' + new URLSearchParams(query || body);
 
-    fetch(`http://localhost:2002${endpoint}`, options)
+    
+    fetch(url, options)
       .then(res => res.json())
       .then(resolve)
       .catch(reject)
