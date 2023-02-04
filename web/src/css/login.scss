@@ -52,8 +52,8 @@
 
 input {
   font-size: 1em;
-  background-color: $primary-2;
-  color: $accent;
+  background-color: $background;
+  color: $text-color;
   outline: none;
   border: 0;
   padding: 8px 12px 8px 12px;
@@ -61,7 +61,7 @@ input {
   transition: 0.5s;
 
   &:hover {
-    background-color: $primary-1;
+    background-color: $accent;
     transition: 0.5s;
   }
 }

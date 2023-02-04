@@ -1,5 +1,5 @@
 import m from 'mithril';
-import '../css/projects.scss';
+import '../css/project-page.scss';
 import { fetchRequest } from '../utils/utils';
 import Cookies from '../utils/Cookies';
 import ImageUpload from './fileupload';
@@ -115,6 +115,7 @@ export default class ProjectPage {
     console.log('fetching images ', cat);
     let params = {
       'project_id': this.projectId,
+      'max_imgs': 60,
     };
     if (cat) params.category = cat;
     m.request('http://localhost:2003/getProjectImages', {
@@ -134,7 +135,13 @@ export default class ProjectPage {
   view(vnode) {
     return m('div.project-page', [
 
-      m(ProjectInfo, this.info),
+      m('div.left-container', [
+        m(CategorySelections, {
+          categories: this.categories,
+          colors: this.colors,
+          res: this.fetchImages.bind(this),
+        }),
+      ]),
 
       this.images.length === 0 ? 
         m(ImageUpload, {
@@ -147,11 +154,6 @@ export default class ProjectPage {
           } 
         }) : 
         m('div.right-container', [
-          m(CategorySelections, {
-            categories: this.categories,
-            colors: this.colors,
-            res: this.fetchImages.bind(this),
-          }),
           m(ImageList, {
             images: this.images
           })
