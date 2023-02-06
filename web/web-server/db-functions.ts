@@ -1,5 +1,5 @@
-import User from './models/user';
-import Project from './models/project';
+import UserModel from './models/user';
+import { ImageModel, TagModel, ProjectModel, } from './models/project';
 import mongoose from 'mongoose';
 
 export async function createUser(params: {
@@ -12,7 +12,7 @@ export async function createUser(params: {
   if (!email || !name || !password)
     throw new Error('Missing parameters email, name, or password');
   
-  const userSetup: mongoose.Document = new User({
+  const userSetup: mongoose.Document = new UserModel({
     name, email, passHash: password,
   });
 
@@ -30,7 +30,7 @@ export async function authenticateUser(params: {
   if (!email || !password)
     throw new Error('Missing email or password');
   
-  const indexedUser: any = await User.findOne({ email }).exec();
+  const indexedUser: any = await UserModel.findOne({ email }).exec();
 
   if (!indexedUser)
     throw new Error('No user found with email');
@@ -40,22 +40,18 @@ export async function authenticateUser(params: {
 }
 
 export async function createProject(params: {
-  name: string | undefined, 
-  uid: string, 
-  tags: [string] | undefined,
+  name?: string, 
+  description?: string,
+  uid: string,
 }) {
-  const {name, uid, tags} = params;
+  const {name, description, uid} = params;
 
   if (!uid) throw new Error('missing uid');
 
-  const projectSetup : mongoose.Document = new Project({
+  const projectSetup : mongoose.Document = new ProjectModel({
     name: name || 'Untitled Project',
-    description: 'New Project',
-
+    description: description || '',
     patronId: uid,
-    tags: tags || [],
-
-    imgPaths: [],
   });
 
   const finishedProject : mongoose.Document = await projectSetup.save();
@@ -67,10 +63,15 @@ export async function getProject(params: {
   uid: string,
   projectId: string,
 }) {
-  const project : any = await Project.findById(params.projectId).exec();
+  const { uid, projectId } = params;
+
+  const project : any = await ProjectModel.findById(projectId).exec();
 
   if (!project)
     throw new Error('Project not found');
+
+  project.images = await ImageModel.find({ projectId }).exec() || [];
+  project.tags   = await TagModel  .find({ projectId }).exec() || [];
   
   return project;
 }
@@ -80,11 +81,14 @@ export async function updateProject(params: {
   uid: string,
   update: object,
 }) {
-  const updateRes = await Project.updateOne({
-    _id: params.projectId,
-    patronId: params.uid,
-  }, 
-    params.update).exec();
+  const updateRes = await ProjectModel.updateOne(
+    {
+      _id: params.projectId,
+      patronId: params.uid,
+    }, 
+    params.update, 
+    { upsert: false, },
+  ).exec();
   
   if (updateRes.modifiedCount > 0)
     return {res: 'success'};
@@ -96,7 +100,7 @@ export async function removeProject(params: {
   uid: string,
   projectId: string,
 }) {
-  await Project.findOneAndRemove({
+  await ProjectModel.findOneAndRemove({
     _id: params.projectId,
     patronId: params.uid,
   }).exec();
@@ -104,8 +108,157 @@ export async function removeProject(params: {
   return {res: 'success'};
 }
 
+export async function addImages(params: {
+  projectId: string,
+  uid: string, 
+
+  imgNames: string[],
+  tags?: string[],
+}) {
+  if (!params.uid) throw new Error('missing uid');
+  if (params.imgNames.length === 0) throw new Error('missing images');
+
+  const projectDoc : any = await ProjectModel.findById(params.projectId).exec();
+
+  let validated = (projectDoc.patronId == params.uid);
+
+  let imageIds: string[] = [];
+
+  for (let imgName of params.imgNames) {
+    const imageSetup : mongoose.Document = new ImageModel({
+      name: imgName,
+
+      projectId: params.projectId,
+      authorId: params.uid,
+  
+      tags: params.tags || [],
+      validated,
+    });
+  
+    const finishedImage : mongoose.Document = await imageSetup.save();
+
+    imageIds.push(finishedImage._id);
+  }
+
+  return { imageIds };
+}
+
+export async function updateImages(params: {
+  uid: string,
+  projectId: string,
+
+  imageIds: string[],
+
+  validate?: boolean,
+
+  removeTags?: string[],
+  addTags?: string[],
+}) {
+  const updateQuery = {
+    _id: { $in: params.imageIds, },
+
+    projectId: params.projectId,
+    authorId: params.uid,
+  }
+
+  let updateData = {}
+
+  if (params.removeTags && params.removeTags.length > 0)
+    updateData['$pull'] = { tags: { $in  : params.removeTags || [] } };
+  
+  if (params.addTags && params.addTags.length > 0)
+    updateData['$push'] = { tags: { $each: params.addTags    || [] } };
+  
+  if (params.validate) updateData['validated'] = true;
+
+  const updateRes = await ImageModel.updateMany(
+    updateQuery, 
+    updateData,
+    { multi: true, upsert: true, }
+  ).exec();
+
+  return { updateCount: updateRes.modifiedCount };
+}
+
+export async function removeImages(params: {
+  uid: string,
+  projectId: string,
+  imageIds: string[],
+}) {
+  const deleteRes = await ImageModel.deleteMany({
+    _id: { $in: params.imageIds, },
+
+    projectId: params.projectId,
+    authorId: params.uid,
+  }).exec();
+
+  return { deleteCount: deleteRes.deletedCount };
+}
+
+export async function createTag(params: {
+  uid: string,
+  projectId: string,
+
+  name?: string, 
+  description?: string,
+  goalQty?: number,
+}) {
+  if (!params.uid) throw new Error('missing uid');
+  if (!Number.isInteger(params.goalQty)) throw new Error('invalid goal quantity');
+
+  const projectInfo : any = ProjectModel.findById(params.projectId).exec();
+
+  if (projectInfo.patronId != params.uid)
+    throw new Error('unauthorized to create tags on this project');
+
+  const tagSetup : mongoose.Document = new TagModel({
+    name: params.name || 'New Tag',
+    description: params.description || '',
+    projectId: params.projectId,
+    goalQty: params.goalQty || 0,
+  });
+
+  const finishedTag : mongoose.Document = await tagSetup.save();
+
+  return {tagId: finishedTag._id};
+}
+
+export async function updateTag(params: {
+  uid: string,
+  projectId: string,
+  tagId: string,
+  update: object,
+}) {
+  const updateRes = await TagModel.updateOne(
+    {
+      _id: params.tagId,
+      projectId: params.projectId,
+    }, 
+    params.update, 
+    { upsert: false, },
+  ).exec();
+  
+  if (updateRes.modifiedCount > 0)
+    return {res: 'success'};
+
+  throw new Error('Could not find project');
+}
+
+export async function removeTag(params: {
+  uid: string,
+  tagId: string,
+  projectId: string,
+}) {
+  await ProjectModel.findOneAndRemove({
+    _id: params.tagId,
+    proejctId: params.projectId,
+  }).exec();
+
+  return {res: 'success'};
+}
+
 export async function getAllProjects() {
-  const allProjects: mongoose.Document[] = await Project.find({}).exec();
+  const allProjects: mongoose.Document[] = await ProjectModel.find({}).exec();
 
   return allProjects;
 }

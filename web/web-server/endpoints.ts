@@ -47,7 +47,7 @@ app.post('/createProject', (req, res) => {
 app.post('/updateProject', async (req, res) => {
   console.log(`--UPDATE PROJECT <${req.body.name}>`);
 
-  if (!req.body.uid || !req.body.projectId) 
+  if (!req.body.uid || !req.body.projectId || !req.body.update) 
     return res.status(400).send({err: 'missing project info'});
   
   db.updateProject(req.body)
@@ -90,6 +90,72 @@ app.get('/getProject', async (req, res) => {
     .catch(err => res.status(400).send({err}))
 
 })
+
+app.post('/addImages', (req, res) => {
+  console.log(`--CREATE IMAGE IDS <${req.body.imgNames?.join(', ')}>`);
+  
+  if (!req.body.uid || !req.body.projectId || !req.body.imgNames)
+    return res.status(400).send({err: 'missing required fields'})
+
+  db.addImages(req.body)
+    .then(data => res.status(200).send(data))
+    .catch(err => res.status(400).send({err}))
+});
+
+app.post('/updateImages', async (req, res) => {
+  console.log(`--UPDATE IMAGES IN <${req.body.projectId}>`);
+
+  if (!req.body.uid || !req.body.projectId || !req.body.imageIds) 
+    return res.status(400).send({err: 'missing required fields'});
+  
+  db.updateImages(req.body)
+    .then(data => res.status(200).send(data))
+    .catch(err => res.status(400).send({err}))
+});
+
+app.post('/removeImages', async (req, res) => {
+  console.log(`--REMOVE IMAGES FROM <${req.body.projectId}>`);
+
+  if (!req.body.uid || !req.body.projectId || !req.body.imageIds) 
+    return res.status(400).send({err: 'missing required fields'});
+
+  db.removeImages(req.body)
+    .then(data => res.status(200).send(data))
+    .catch(err => res.status(400).send({err}))
+});
+
+app.post('/createTag', (req, res) => {
+  console.log(`--CREATE TAG <${req.body.name || 'unnamed'}> IN <${req.body.projectId}>`);
+
+  if (!req.body.uid || !req.body.projectId)
+    return res.status(400).send({err: 'missing required fields'});
+
+  db.createTag(req.body)
+    .then(data => res.status(200).send(data))
+    .catch(err => res.status(400).send({err}))
+});
+
+app.post('/updateTag', async (req, res) => {
+  console.log(`--UPDATE TAG <${req.body.tagId}> FROM <${req.body.projectId}>`);
+
+  if (!req.body.uid || !req.body.projectId || !req.body.tagId || !req.body.update) 
+    return res.status(400).send({err: 'missing required fields'});
+  
+  db.updateTag(req.body)
+    .then(data => res.status(200).send(data))
+    .catch(err => res.status(400).send({err}))
+});
+
+app.post('/removeTag', async (req, res) => {
+  console.log(`--REMOVE TAG <${req.body.tagId}> FROM <${req.body.projectId}>`);
+
+  if (!req.body.uid || !req.body.projectId || !req.body.tagId) 
+    return res.status(400).send({err: 'missing required fields'});
+
+  db.removeTag(req.body)
+    .then(data => res.status(200).send(data))
+    .catch(err => res.status(400).send({err}))
+});
 
 app.post('/')
 

@@ -32,6 +32,6 @@ UserSchema.methods.validatePassword = function(pwd)  {
   return this.passHash === hash;
 };
 
-const User = mongoose.model('User', UserSchema);
+const UserModel = mongoose.model('User', UserSchema);
 
-export default User;
+export default UserModel;
