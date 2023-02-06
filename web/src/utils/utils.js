@@ -1,5 +1,11 @@
+export function initArr(size, val=0) {
+  let arr = [];
+  for (let i = 0; i < size; i++)
+    arr.push(val);
+  return arr;
+}
 
-function fetchRequest(endpoint, { method, body, query }) {
+export function fetchRequest(endpoint, { method, body, query }) {
   return new Promise((resolve, reject) => {
 
     method = method.toUpperCase();
@@ -27,5 +33,3 @@ function fetchRequest(endpoint, { method, body, query }) {
     
   })
 }
-
-export { fetchRequest };

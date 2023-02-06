@@ -1,6 +1,6 @@
 import m from 'mithril';
 import '../css/project-page.scss';
-import { fetchRequest } from '../utils/utils';
+import { fetchRequest, initArr } from '../utils/utils';
 import Cookies from '../utils/Cookies';
 import ImageUpload from './fileupload';
 import ImageList from './img-view';
@@ -26,16 +26,8 @@ function ProjectInfo(vnode) {
   };
 }
 
-function initArr(size, val=0) {
-  let arr = [];
-  for (let i = 0; i < size; i++)
-    arr.push(val);
-  return arr;
-}
-
 class CategorySelections {
   constructor(vnode) {
-    this.res = vnode.attrs.res;
     this.selected = [];
   }
 
@@ -54,7 +46,7 @@ class CategorySelections {
                   this.selected = initArr(this.selected.length, false);
                   this.selected[i] = true;
 
-                  this.res(cat);
+                  vnode.attrs.res(cat);
                 } else {
                   this.selected = initArr(this.selected.length, true);
                 }
@@ -65,9 +57,19 @@ class CategorySelections {
                   backgroundColor: vnode.attrs.colors[i]
                 }
               }),
-              m('span.category-item-title', cat),
+              m('span.category-item-title', cat.name),
             ])
-          ),
+          )
+          .concat([
+            m('div.category-item.new-category-button.selected', {
+              onclick: e => {
+                vnode.attrs.addTag();
+              }
+            }, [
+              m('span.category-item-new-icon', '+'),
+              m('span.category-item-title', 'Add Tag'),
+            ])
+          ])
       ),
     );
   }
@@ -88,7 +90,7 @@ export default class ProjectPage {
       patronId: '',
       tags: [''],
     }
-    this.categories = [];
+    this.tags = [];
     this.colors = [];
     this.images = [];
 
@@ -105,13 +107,35 @@ export default class ProjectPage {
       },
     })
       .then(projectInfo => {
+        console.log('projectInfo', projectInfo);
         this.info = projectInfo;
+        this.tags = projectInfo.tags;
+
+        if (this.tags.length > 0)
+          this.colors = colorGen(this.tags.length);
+
         m.redraw();
       })
       .catch(console.error)
   }
 
+  addTag() {
+    fetchRequest('/createTag', {
+      method: 'POST',
+      body: {
+        projectId: this.projectId,
+        uid: this.uid,
+      }
+    })
+      .then(tagInfo => {
+        this.fetchProjectInfo();
+      })
+      .catch(console.log)
+  }
+
   fetchImages(cat) {
+    return;
+
     console.log('fetching images ', cat);
     let params = {
       'project_id': this.projectId,
@@ -123,10 +147,7 @@ export default class ProjectPage {
       params,
     }).then(res => {
       if (!res.err && res.images) {
-        console.log(res);
         this.images = res.images;
-        this.categories = res.categories;
-        this.colors = colorGen(this.categories.length);
         m.redraw();
       }
     }).catch(console.error)
@@ -137,9 +158,12 @@ export default class ProjectPage {
 
       m('div.left-container', [
         m(CategorySelections, {
-          categories: this.categories,
+          categories: this.tags,
+          projectId: this.projectId,
           colors: this.colors,
+
           res: this.fetchImages.bind(this),
+          addTag: this.addTag.bind(this),
         }),
       ]),
 

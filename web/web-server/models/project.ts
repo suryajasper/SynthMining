@@ -5,7 +5,7 @@ const TagSchema: mongoose.Schema = new mongoose.Schema({
   name: String,
   description: String,
 
-  projectId: ObjectId,
+  projectId: String,
 
   goalQty: {
     type: Number,
@@ -20,10 +20,10 @@ const TagSchema: mongoose.Schema = new mongoose.Schema({
 const ImageSchema: mongoose.Schema = new mongoose.Schema({
   name: String,
 
-  projectId: ObjectId,
-  authorId: ObjectId,
+  projectId: String,
+  authorId: String,
 
-  tags: [ObjectId],
+  tags: [String],
   validated: Boolean,
 })
 

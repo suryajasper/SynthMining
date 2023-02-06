@@ -10,7 +10,7 @@ export async function createUser(params: {
   const {email, name, password} = params;
 
   if (!email || !name || !password)
-    throw new Error('Missing parameters email, name, or password');
+    throw Error('Missing parameters email, name, or password');
   
   const userSetup: mongoose.Document = new UserModel({
     name, email, passHash: password,
@@ -28,12 +28,12 @@ export async function authenticateUser(params: {
   const {email, password} = params;
 
   if (!email || !password)
-    throw new Error('Missing email or password');
+    throw Error('Missing email or password');
   
   const indexedUser: any = await UserModel.findOne({ email }).exec();
 
   if (!indexedUser)
-    throw new Error('No user found with email');
+    throw Error('No user found with email');
 
   if (indexedUser.validatePassword(password))
     return { uid: indexedUser._id };
@@ -46,7 +46,7 @@ export async function createProject(params: {
 }) {
   const {name, description, uid} = params;
 
-  if (!uid) throw new Error('missing uid');
+  if (!uid) throw Error('missing uid');
 
   const projectSetup : mongoose.Document = new ProjectModel({
     name: name || 'Untitled Project',
@@ -65,14 +65,16 @@ export async function getProject(params: {
 }) {
   const { uid, projectId } = params;
 
-  const project : any = await ProjectModel.findById(projectId).exec();
+  let project : object = await ProjectModel.findById(projectId).lean();
 
   if (!project)
-    throw new Error('Project not found');
+    throw Error('Project not found');
 
-  project.images = await ImageModel.find({ projectId }).exec() || [];
-  project.tags   = await TagModel  .find({ projectId }).exec() || [];
-  
+  project = Object.assign(project, {
+    images : await ImageModel.find({ projectId }).exec() || [],
+    tags   : await TagModel  .find({ projectId }).exec() || [],
+  });
+
   return project;
 }
 
@@ -93,7 +95,7 @@ export async function updateProject(params: {
   if (updateRes.modifiedCount > 0)
     return {res: 'success'};
 
-  throw new Error('Could not find project');
+  throw Error('Could not find project');
 }
 
 export async function removeProject(params: {
@@ -115,8 +117,8 @@ export async function addImages(params: {
   imgNames: string[],
   tags?: string[],
 }) {
-  if (!params.uid) throw new Error('missing uid');
-  if (params.imgNames.length === 0) throw new Error('missing images');
+  if (!params.uid) throw Error('missing uid');
+  if (params.imgNames.length === 0) throw Error('missing images');
 
   const projectDoc : any = await ProjectModel.findById(params.projectId).exec();
 
@@ -203,13 +205,13 @@ export async function createTag(params: {
   description?: string,
   goalQty?: number,
 }) {
-  if (!params.uid) throw new Error('missing uid');
-  if (!Number.isInteger(params.goalQty)) throw new Error('invalid goal quantity');
+  if (!params.uid) throw Error('missing uid');
+  if (params.goalQty && !Number.isInteger(params.goalQty)) throw Error('invalid goal quantity');
 
-  const projectInfo : any = ProjectModel.findById(params.projectId).exec();
+  const projectInfo : any = await ProjectModel.findById(params.projectId).exec();
 
   if (projectInfo.patronId != params.uid)
-    throw new Error('unauthorized to create tags on this project');
+    throw Error('unauthorized to create tags on this project');
 
   const tagSetup : mongoose.Document = new TagModel({
     name: params.name || 'New Tag',
@@ -241,7 +243,7 @@ export async function updateTag(params: {
   if (updateRes.modifiedCount > 0)
     return {res: 'success'};
 
-  throw new Error('Could not find project');
+  throw Error('Could not find project');
 }
 
 export async function removeTag(params: {
