@@ -94,11 +94,10 @@ export default class ProjectPage {
     this.colors = [];
     this.images = [];
 
-    this.fetchProjectInfo();
-    this.fetchImages();
+    this.fetchProject();
   }
 
-  fetchProjectInfo() {
+  fetchProject() {
     fetchRequest('/getProject', {
       method: 'GET',
       query: {
@@ -110,6 +109,9 @@ export default class ProjectPage {
         console.log('projectInfo', projectInfo);
         this.info = projectInfo;
         this.tags = projectInfo.tags;
+        this.images = projectInfo.images;
+        if (this.images.length > 0)
+          this.fetchImages();
 
         if (this.tags.length > 0)
           this.colors = colorGen(this.tags.length);
@@ -134,20 +136,22 @@ export default class ProjectPage {
   }
 
   fetchImages(cat) {
-    return;
-
-    console.log('fetching images ', cat);
     let params = {
-      'project_id': this.projectId,
-      'max_imgs': 60,
+      img_count: this.images.length,
     };
-    if (cat) params.category = cat;
-    m.request('http://localhost:2003/getProjectImages', {
+
+    this.images.forEach((img, i) => {
+      params[`id_${i}`] = img._id;
+    })
+
+    m.request('http://localhost:2003/getImages', {
       method: 'GET',
       params,
     }).then(res => {
       if (!res.err && res.images) {
-        this.images = res.images;
+        this.images = this.images.map((imgData, i) => 
+          Object.assign(imgData, {src: res.images[i]})
+        );
         m.redraw();
       }
     }).catch(console.error)
@@ -171,6 +175,7 @@ export default class ProjectPage {
         m(ImageUpload, {
           active: true,
           uid: this.uid, 
+          projectId: this.projectId,
           imgSrcs: this.images,
           status: e => {
             if (!e.err)

@@ -131,12 +131,15 @@ body {
 }
 
 .img-view-container {
+  $img-view-size: 90px;
+
   background-color: $primary-2;
   color: $background;
   border-radius: 6px;
   height: fit-content;
-
+  
   .img-view-content {
+    max-width: $img-view-size;
     padding: 6px;
     display: flex;
     flex-direction: column;
@@ -144,11 +147,15 @@ body {
   }
 
   img.image-display {
-    width: 90px;
+    width: $img-view-size;
+    height: $img-view-size;
   }
 
   .image-title {
-    font-size: 0.75em;
+    font-size: 0.6em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     font-weight: lighter;
   }
 }

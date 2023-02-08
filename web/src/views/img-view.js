@@ -5,11 +5,22 @@ function base64ImgHeader(string) {
 }
 
 class ImageView {
+  trimText(str) {
+    let maxLen = 1000;
+
+    if (str.length > maxLen)
+      return str.substring(0, 10) + '...';
+
+    return str;
+  }
+
   view(vnode) {
     return m('div.img-view-container', [
-      m('div.img-view-content', [
+      m('div.img-view-content', {
+        title: vnode.attrs.name,
+      }, [
         m('img.image-display', { src: base64ImgHeader(vnode.attrs.src) }),
-        m('span.image-title', vnode.attrs.name),
+        m('span.image-title', this.trimText(vnode.attrs.name)),
       ])
     ])
   }

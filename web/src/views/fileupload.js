@@ -1,28 +1,39 @@
 import m from 'mithril';
+import { fetchRequest, randId } from '../utils/utils';
 
 export default class ImageUpload {
   constructor(vnode) {
     this.status = vnode.attrs.status;
 
     this.uid = vnode.attrs.uid;
+    this.projectId = vnode.attrs.projectId;
 
     this.upload = {
       uploaded: false,
       curr: 0,
       total: 0,
     }
+
+    this.uploading = false;
   }
 
-  uploadToServer(image) {
+  uploadToServer(imgBatch) {
     const formdata = new FormData();
-    formdata.append('imgfile', image);
+    
+    for (let i = 0; i < imgBatch.length; i++) {
+      let { imgFile, imgId } = imgBatch[i];
+      
+      formdata.append(`${i}`, imgFile);
+      formdata.append('img_ids[]', imgId);
+    }
+    
     formdata.append('uid', this.uid);
 
-    console.log(formdata);  
-
+    formdata.append('batch_size', imgBatch.length);
+    
     return new Promise((res, rej) => {
       var xhr = new XMLHttpRequest();
-      xhr.open("POST", "http://localhost:2003/uploadImageToProject", true);
+      xhr.open("POST", "http://localhost:2003/uploadImages", true);
       xhr.onload = function() {
         if (this.status === 200) res();
         else rej();
@@ -31,11 +42,38 @@ export default class ImageUpload {
     });
   }
 
+  async getImageIds(imgNames) {
+    const { imageIds } = await fetchRequest('/addImages', {
+      method: 'POST',
+      body: {
+        uid: this.uid,
+        projectId: this.projectId,
+        imgNames,
+      }
+    });
+
+    return imageIds;
+  }
+
   async uploadImages(files) {
+    this.uploading = true;
+
     this.upload.curr = 0;
     this.upload.total = files.length;
 
     let fileCopy = [...files];
+
+    let fileNames = fileCopy.map(
+      file => file.name.split('.')[0]
+    );
+
+    let imageIds = await this.getImageIds(fileNames);
+
+    fileCopy = fileCopy.map((imgFile, i) => {
+      return {
+        imgFile, imgId: imageIds[i],
+      }
+    });
     
     const batch_size = 5;
 
@@ -71,7 +109,10 @@ export default class ImageUpload {
           document.querySelector('#imageIn').click();
         }
       }, [
-        m('div.upload-header', 'Drag / Click to Upload Files'),
+        m('div.upload-header', this.uploading ? 
+          `Uploading Images... ${this.upload.curr} / ${this.upload.total}` :
+          'Drag / Click to Upload Files'
+        ),
         m('div.upload-svg-container', 
           m('svg', {
             viewBox:"0 0 24 24",
