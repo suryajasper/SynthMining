@@ -222,7 +222,7 @@ export async function createTag(params: {
 
   const finishedTag : mongoose.Document = await tagSetup.save();
 
-  return {tagId: finishedTag._id};
+  return finishedTag.toObject();
 }
 
 export async function updateTag(params: {

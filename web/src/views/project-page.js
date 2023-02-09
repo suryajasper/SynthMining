@@ -1,11 +1,17 @@
 import m from 'mithril';
-import '../css/project-page.scss';
-import { fetchRequest, initArr } from '../utils/utils';
-import Cookies from '../utils/Cookies';
-import ImageUpload from './fileupload';
-import ImageList from './img-view';
 import colorGen from 'iwanthue';
 
+import '../css/project-page.scss';
+import '../css/image-list.scss';
+
+import { fetchRequest } from '../utils/utils';
+import Cookies from '../utils/Cookies';
+
+import { EditTagPopup, CategorySelections} from './category-list';
+import { PopupOverlay, updatePopupOverlayStatus } from './popup';
+import ImageUpload from './fileupload';
+import ImageList from './img-view';
+/*
 function ProjectInfo(vnode) {
   return {
     view(vnode) {
@@ -25,56 +31,7 @@ function ProjectInfo(vnode) {
     },
   };
 }
-
-class CategorySelections {
-  constructor(vnode) {
-    this.selected = [];
-  }
-
-  view(vnode) {
-    if (this.selected.length != vnode.attrs.categories.length)
-      this.selected = initArr(vnode.attrs.categories.length, true);
-    
-    return m('div.category-container',
-      m('div.category-content',
-        (vnode.attrs.categories || [])
-          .map((cat, i) => 
-            m('div.category-item', {
-              class: this.selected[i] ? 'selected' : '',
-              onclick: e => {
-                if (this.selected[i-1] || !(this.selected[i])) {
-                  this.selected = initArr(this.selected.length, false);
-                  this.selected[i] = true;
-
-                  vnode.attrs.res(cat);
-                } else {
-                  this.selected = initArr(this.selected.length, true);
-                }
-              }
-            }, [
-              m('span.category-item-color', {
-                style: {
-                  backgroundColor: vnode.attrs.colors[i]
-                }
-              }),
-              m('span.category-item-title', cat.name),
-            ])
-          )
-          .concat([
-            m('div.category-item.new-category-button.selected', {
-              onclick: e => {
-                vnode.attrs.addTag();
-              }
-            }, [
-              m('span.category-item-new-icon', '+'),
-              m('span.category-item-title', 'Add Tag'),
-            ])
-          ])
-      ),
-    );
-  }
-}
-
+*/
 export default class ProjectPage {
   constructor(vnode) {
     this.uid = Cookies.get('uid');
@@ -94,6 +51,19 @@ export default class ProjectPage {
     this.colors = [];
     this.images = [];
 
+    this.popups = {
+      'editTag': EditTagPopup,
+    };
+
+    Object.keys(this.popups).forEach(popupName => {
+      const popupView = this.popups[popupName];
+      this.popups[popupName] = {
+        view: popupView,
+        active: true,
+        data: {},
+      }
+    });
+
     this.fetchProject();
   }
 
@@ -107,9 +77,11 @@ export default class ProjectPage {
     })
       .then(projectInfo => {
         console.log('projectInfo', projectInfo);
+
         this.info = projectInfo;
         this.tags = projectInfo.tags;
         this.images = projectInfo.images;
+
         if (this.images.length > 0)
           this.fetchImages();
 
@@ -129,8 +101,10 @@ export default class ProjectPage {
         uid: this.uid,
       }
     })
-      .then(tagInfo => {
-        this.fetchProjectInfo();
+      .then(tag => { 
+        this.tags.push(tag);
+        this.colors = colorGen(this.tags.length);
+        m.redraw();
       })
       .catch(console.log)
   }
@@ -157,8 +131,44 @@ export default class ProjectPage {
     }).catch(console.error)
   }
 
+  isPopupActive() {
+    return Object.values(this.popups)
+      .map(popup => popup.active)
+      .reduce((a, b) => a + b);
+  }
+
+  inactivateAllPopups() {
+    Object.values(this.popups).forEach(popup => {
+      popup.active = false;
+    })
+  }
+
+  updatePopupStatus({ name, active, data }) {
+    console.log({name, data});
+
+    if (this.isPopupActive() || !this.popups[name]) 
+      return;
+    
+    updatePopupOverlayStatus({ active });
+    this.popups[name].active = active;
+    this.popups[name].data = data;
+    m.redraw();
+  }
+
   view(vnode) {
     return m('div.project-page', [
+
+      m(PopupOverlay, {
+        disabledCallback: this.inactivateAllPopups.bind(this),
+      },
+        Object.values(this.popups)
+          .map(popup => 
+            m(popup.view, { 
+              active: popup.active,
+              data: popup.data,
+            })
+          )
+      ),
 
       m('div.left-container', [
         m(CategorySelections, {
@@ -168,6 +178,7 @@ export default class ProjectPage {
 
           res: this.fetchImages.bind(this),
           addTag: this.addTag.bind(this),
+          updatePopupStatus: this.updatePopupStatus.bind(this),
         }),
       ]),
 

@@ -1,0 +1,55 @@
+@import './vars.scss';
+
+.popup-background-blur {
+  @keyframes blur-backdrop-in {
+    from {
+      backdrop-filter: blur(0px);
+      background-color: rgba(black, 0);
+    }
+
+    to {
+      backdrop-filter: blur(3px);
+      background-color: rgba(black, 0.4);
+    }
+  }
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  z-index: 9998;
+
+  backdrop-filter: blur(0px);
+  max-height: 0;
+  overflow: hidden;
+  
+  &.enabled {
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+
+    animation: blur-backdrop-in 1s linear 0ms 1 normal forwards;
+  }
+}
+
+.popup-container {
+  z-index: 9999;
+  position: absolute;
+  padding: 8px;
+  border-radius: 6px;
+  background-color: $accent;
+  display: flex;
+  flex-direction: column;
+  min-width: 400px;
+
+  .popup-header {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .popup-title {
+      color: $text-color;
+    }
+  }
+}

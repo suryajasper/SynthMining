@@ -50,41 +50,43 @@
   }
 }
 
-input {
-  font-size: 1em;
-  background-color: $background;
-  color: $text-color;
-  outline: none;
-  border: 0;
-  padding: 8px 12px 8px 12px;
-  border-radius: 4px;
-  transition: 0.5s;
-
-  &:hover {
-    background-color: $accent;
+.auth-body {
+  input {
+    font-size: 1em;
+    background-color: $background;
+    color: $text-color;
+    outline: none;
+    border: 0;
+    padding: 8px 12px 8px 12px;
+    border-radius: 4px;
     transition: 0.5s;
+  
+    &:hover {
+      background-color: $accent;
+      transition: 0.5s;
+    }
   }
-}
-
-button {
-  font-size: 1em;
-  background-color: $primary-2;
-  color: $accent;
-  outline: none;
-  border: 0;
-  padding: 8px 12px 8px 12px;
-  border-radius: 4px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.5s;
-
-  &:disabled {
-    background-color: rgba($primary-2, 0.5);
-    cursor: not-allowed;
-  }
-
-  &:hover:not(:disabled) {
-    background-color: $primary-1;
+  
+  button {
+    font-size: 1em;
+    background-color: $primary-2;
+    color: $accent;
+    outline: none;
+    border: 0;
+    padding: 8px 12px 8px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
     transition: 0.5s;
+  
+    &:disabled {
+      background-color: rgba($primary-2, 0.5);
+      cursor: not-allowed;
+    }
+  
+    &:hover:not(:disabled) {
+      background-color: $primary-1;
+      transition: 0.5s;
+    }
   }
 }
