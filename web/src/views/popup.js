@@ -1,8 +1,9 @@
 import m from 'mithril';
 import '../css/popup.scss';
+import { icons } from './icons';
 
 const popupStatus = {
-  active: true,
+  active: false,
 }
 
 function updatePopupOverlayStatus({active}) {
@@ -35,6 +36,46 @@ function PopupOverlay() {
 }
 
 const PopupOuter = {
+
+  view(vnode) {
+    
+  }
+}
+
+class Popup {
+  constructor() {
+    this.input = {};
+    this.active = false;
+    this.title = '';
+    this.actions = [];
+  }
+
+  createInputGroup({ 
+    id, 
+    displayTitle=id, 
+    type='text', 
+    placeholder='', 
+    initialValue='',
+  }) {
+    let inputSelector = type === 'textarea' ? 'textarea.input-group-textarea' : 'input.input-group-input';
+    let inputAttrs = {
+      name: id, placeholder,
+      value: this.input[id] !== undefined ? this.input[id] : initialValue,
+      oninput: e => {
+        this.input[id] = e.target.value;
+      },
+    };
+    if (type !== 'textarea') inputAttrs.type = type;
+
+    return m('div.input-group', {
+      class: type === 'textarea' ? 'long-in' : '',
+    }, [
+      m('label.input-group-label', { for: id }, displayTitle),
+
+      m(inputSelector, inputAttrs),
+    ]);
+  }
+
   createCallbackButton(action) {
     return m('button.popup-button', {
       onclick: e => {
@@ -43,52 +84,41 @@ const PopupOuter = {
     },
       action.name, 
     )
-  },
+  }
+
+  hidePopup(vnode) {
+    this.input = {};
+    this.active = false;
+    vnode.attrs.disabledCallback();
+  }
+
+  loadPopupContent(vnode) { return null; }
 
   view(vnode) {
     return m('div.popup-container', {
-      style: { display: vnode.attrs.active ? 'block' : 'none', }
+      style: { display: vnode.attrs.active ? 'flex' : 'none', },
+      tabindex: 0,
+      // onblur: e => this.hidePopup(vnode),
     }, [
       m('div.popup-header', [
-        m('span.popup-title', vnode.attrs.title),
+        m('span.popup-title', this.title),
+
+        m('button.exit-view-button', {
+          title: 'Cancel',
+          onclick: e => { this.hidePopup(vnode); }
+        },
+          icons.exit,
+        )
       ]),
       m('div.popup-content', 
-        vnode.children,
+        this.loadPopupContent(vnode),
       ),
       m('div.popup-footer', 
-        (vnode.attrs.actions || [])
+        this.actions
           .map(this.createCallbackButton)
-      )
+      ),
     ]);
   }
 }
 
-class Popup {
-  constructor() {
-    this.input = {};
-  }
-
-  createInputGroup({ 
-    id, 
-    displayTitle=id, 
-    type='text', 
-    placeholder='' 
-  }) {
-    return m('div.input-group', [
-      m('label.input-group-label', { for: id }, displayTitle),
-
-      type === 'textarea' ?
-        m('textarea.input-group-textarea', {
-          name: id, placeholder,
-        }) :
-        m('input.input-group-input', {
-          name: id, type, placeholder,
-          oninput: e => {
-            this.input[id] = e.target.value;
-          }
-        })
-    ]);
-  }
-}
-
-export { updatePopupOverlayStatus, PopupOverlay, PopupOuter, Popup };
+export { updatePopupOverlayStatus, PopupOverlay, Popup };

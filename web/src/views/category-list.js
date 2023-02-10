@@ -1,34 +1,78 @@
 import m from 'mithril';
 import '../css/tags.scss';
-import { initArr } from '../utils/utils';
-import { Popup, PopupOuter } from './popup';
+import { fetchRequest, initArr } from '../utils/utils';
+import { Popup } from './popup';
 import { icons } from './icons';
 
 export class EditTagPopup extends Popup {
   constructor(vnode) {
     super();
+
+    this.actions = [
+      {name: 'Save', res: () => this.saveTag(vnode)},
+      {name: 'Remove', res: () => this.removeTag(vnode)},
+    ];
   }
 
-  view(vnode) {
-    let tag = vnode.attrs.data;
+  onupdate(vnode) {
+    this.tagId = vnode.attrs.data?.tag?._id;
+    this.projectId = vnode.attrs.data.projectId;
+    this.uid = vnode.attrs.data.uid;
+  }
 
-    return m(PopupOuter, {
-      active: vnode.attrs.active,
-      title: `Edit ${tag?.name}`,
-      actions: [
-        {name: 'Save', res: console.log},
-      ]
-    }, [
+  saveTag(vnode) {
+    fetchRequest('/updateTag', {
+      method: 'POST',
+      body: {
+        uid: this.uid,
+        projectId: this.projectId,
+        tagId: this.tagId,
+        update: {
+          name: this.input.tagName,
+          description: this.input.tagDescription,
+        },
+      }
+    })
+      .then(res => {
+        this.hidePopup(vnode);
+        vnode.attrs.reloadCallback();
+      })
+  }
+
+  removeTag(vnode) {
+    fetchRequest('/removeTag', {
+      method: 'POST',
+      body: {
+        uid: this.uid,
+        projectId: this.projectId,
+        tagId: this.tagId,
+      }
+    })
+      .then(res => {
+        this.hidePopup(vnode);
+        vnode.attrs.reloadCallback();
+      })
+  }
+
+  loadPopupContent(vnode) {
+    let {tag} = vnode.attrs.data;
+
+    this.title = `Edit ${tag?.name}`;
+    m.redraw();
+
+    return [
       this.createInputGroup({
         id: 'tagName',
         displayTitle: 'Name',
+        initialValue: tag?.name,
       }),
       this.createInputGroup({
         id: 'tagDescription',
         displayTitle: 'Description',
         type: 'textarea',
+        initialValue: tag?.description,
       }),
-    ]);
+    ];
   }
 }
 
@@ -64,10 +108,15 @@ export class CategorySelections {
         m('button.tag-edit-button', {
           onclick: e => {
             e.stopPropagation();
+
             this.updatePopupStatus({
               name: 'editTag', 
               active: true,
-              data: tag,
+              data: {
+                projectId: vnode.attrs.projectId,
+                uid: vnode.attrs.uid,
+                tag,
+              },
             });
           }
         }, 

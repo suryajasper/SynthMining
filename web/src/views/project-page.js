@@ -59,8 +59,13 @@ export default class ProjectPage {
       const popupView = this.popups[popupName];
       this.popups[popupName] = {
         view: popupView,
-        active: true,
-        data: {},
+        attrs: {
+          active: true,
+          data: {},
+
+          disabledCallback: this.inactivateAllPopups.bind(this),
+          reloadCallback: this.fetchProject.bind(this),
+        },
       }
     });
 
@@ -138,20 +143,21 @@ export default class ProjectPage {
   }
 
   inactivateAllPopups() {
+    updatePopupOverlayStatus({ active: false });
+
     Object.values(this.popups).forEach(popup => {
       popup.active = false;
     })
   }
 
   updatePopupStatus({ name, active, data }) {
-    console.log({name, data});
-
     if (this.isPopupActive() || !this.popups[name]) 
       return;
     
     updatePopupOverlayStatus({ active });
-    this.popups[name].active = active;
-    this.popups[name].data = data;
+    this.popups[name].attrs.active = active;
+    this.popups[name].attrs.data = data;
+    console.log(this.popups);
     m.redraw();
   }
 
@@ -163,16 +169,14 @@ export default class ProjectPage {
       },
         Object.values(this.popups)
           .map(popup => 
-            m(popup.view, { 
-              active: popup.active,
-              data: popup.data,
-            })
+            m(popup.view, popup.attrs)
           )
       ),
 
       m('div.left-container', [
         m(CategorySelections, {
           categories: this.tags,
+          uid: this.uid,
           projectId: this.projectId,
           colors: this.colors,
 

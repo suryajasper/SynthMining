@@ -251,7 +251,7 @@ export async function removeTag(params: {
   tagId: string,
   projectId: string,
 }) {
-  await ProjectModel.findOneAndRemove({
+  await TagModel.findOneAndRemove({
     _id: params.tagId,
     proejctId: params.projectId,
   }).exec();
