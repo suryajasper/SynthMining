@@ -33,6 +33,9 @@ def upload_images():
 
   for i, file_obj in enumerate(fs):
     file_ext = file_obj.filename.split('.')[-1].strip()
+    if file_ext == 'jpeg':
+      file_ext = 'jpg'
+    
     file_name = f'{img_ids[i]}.{file_ext}'
     file_path = path.join(DIR_PATH, file_name)
 

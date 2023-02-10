@@ -1,5 +1,7 @@
 @import './vars.scss';
 
+$left-width: 30%;
+
 body {
   height: 100%;
   min-height: 100vh;
@@ -29,7 +31,7 @@ body {
 }
 
 .left-container {
-  width: 30%;
+  width: $left-width;
   padding: 12px;
   height: calc(100vh - 12px * 2);
   max-height: 100vh;
@@ -40,22 +42,56 @@ body {
   flex-direction: column;
 }
 
-.upload-container {
-  cursor: pointer;
-
-  display: flex;
-  flex-direction: column;
+.right-container {
+  position: relative;
   justify-content: center;
   align-items: center;
-  
-  height: calc(100vh - 12px * 2);
   width: 100%;
-  border: 3px dashed $primary-2;
-  border-radius: 8px; 
+  max-width: calc(100% - $left-width);
   margin: 12px;
+  height: calc(100vh - 12px * 2);
+}
 
+.upload-container {
+  height: 100%;
+  border-radius: 8px;
+  width: 100%;
+  cursor: pointer;
+  transition: 0.5s ease-out;
+  
+  &.upload-background {
+    border: 3px dashed transparent;
+  }
+
+  &.upload-foreground {
+    border: 3px dashed $primary-2;
+  }
+
+  &.upload-dragover {
+    background-color: $accent;
+    border: 3px solid $primary-2;
+    transition: 0.5s ease-out;
+  }
+
+  .progress-bar {
+    position: absolute;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    z-index: -9999;
+    height: 100%;
+    background-color: $accent;
+  }
+
+  .upload-content {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  
   .upload-header {
-    margin-top: 20px;
     font-size: 1.5em;
   }
 
@@ -66,11 +102,4 @@ body {
       fill: $primary-2;
     }
   }
-}
-
-.right-container {
-  width: 100%;
-  max-width: 70%;
-  margin: 12px;
-  height: calc(100vh - 12px * 2);
 }

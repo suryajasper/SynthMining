@@ -8,18 +8,23 @@
   max-height: 100%;
   overflow-y: scroll;
   gap: 12px;
-  margin-top: 12px;
+  margin: 12px;
   justify-content: start;
   align-content: flex-start;
 }
 
 .img-view-container {
   $img-view-size: 120px;
-
+  
+  cursor: default;
   background-color: $primary-2;
   color: $background;
   border-radius: 6px;
   height: fit-content;
+
+  &:hover {
+    background-color: $primary-1;
+  }
   
   .img-view-content {
     max-width: $img-view-size;
@@ -35,6 +40,7 @@
   }
 
   .image-title {
+    cursor: text;
     font-size: 0.6em;
     overflow: hidden;
     white-space: nowrap;

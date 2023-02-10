@@ -186,22 +186,25 @@ export default class ProjectPage {
         }),
       ]),
 
-      this.images.length === 0 ? 
+      m('div.right-container', [
+
         m(ImageUpload, {
-          active: true,
+          active: this.images.length === 0,
           uid: this.uid, 
           projectId: this.projectId,
           imgSrcs: this.images,
           status: e => {
             if (!e.err)
-              this.fetchImages();
+              this.fetchProject();
           } 
-        }) : 
-        m('div.right-container', [
-          m(ImageList, {
-            images: this.images
-          })
-        ])
+        },
+          this.images.length > 0 ? 
+            m(ImageList, {
+              images: this.images
+            }) : null 
+        ),
+
+      ]),
 
     ]);
   }

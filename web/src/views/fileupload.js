@@ -9,12 +9,11 @@ export default class ImageUpload {
     this.projectId = vnode.attrs.projectId;
 
     this.upload = {
-      uploaded: false,
+      dragOver: false,
+      uploading: false,
       curr: 0,
-      total: 0,
+      total: 1,
     }
-
-    this.uploading = false;
   }
 
   uploadToServer(imgBatch) {
@@ -56,7 +55,7 @@ export default class ImageUpload {
   }
 
   async uploadImages(files) {
-    this.uploading = true;
+    this.upload.uploading = true;
 
     this.upload.curr = 0;
     this.upload.total = files.length;
@@ -75,10 +74,10 @@ export default class ImageUpload {
       }
     });
     
-    const batch_size = 5;
+    const BATCH_SIZE = 1;
 
     while (fileCopy.length > 0) {
-      let batch = fileCopy.splice(0, batch_size);
+      let batch = fileCopy.splice(0, BATCH_SIZE);
       
       await this.uploadToServer(batch);
 
@@ -87,38 +86,84 @@ export default class ImageUpload {
       m.redraw();
     }
 
+    this.upload.curr = 0;
+    this.upload.total = 1;
+
     this.status('success');
+  }
+
+  containsFiles(event) {
+    if (event.dataTransfer.types) {
+      for (var i = 0; i < event.dataTransfer.types.length; i++) {
+        if (event.dataTransfer.types[i] == "Files") {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+
+  displayUploadInstructions() {
+    return [
+      m('div.upload-header', this.upload.uploading ? 
+        `Uploading Images... ${this.upload.curr} / ${this.upload.total}` :
+        'Drag / Click to Upload Files'
+      ),
+      m('div.upload-svg-container', 
+        m('svg', {
+          viewBox:"0 0 24 24",
+        }, m('path', {
+          d: "M11 20H6.5Q4.22 20 2.61 18.43 1 16.85 1 14.58 1 12.63 2.17 11.1 3.35 9.57 5.25 9.15 5.88 6.85 7.75 5.43 9.63 4 12 4 14.93 4 16.96 6.04 19 8.07 19 11 20.73 11.2 21.86 12.5 23 13.78 23 15.5 23 17.38 21.69 18.69 20.38 20 18.5 20H13V12.85L14.6 14.4L16 13L12 9L8 13L9.4 14.4L11 12.85Z",
+        }))
+      ),
+    ];
+  }
+
+  displayProgressBar() {
+    return m('div.progress-bar', {
+      style: {
+        width: `${this.upload.curr / this.upload.total * 100}%`,
+      }
+    });
   }
 
   view(vnode) {
     return [
       m('div.upload-container', {
-        style: {
-          display: vnode.attrs.active ? 'flex' : 'none',
-        },
+        class: [
+          vnode.attrs.active ? 'upload-foreground' : 'upload-background',
+          this.upload.dragOver ? 'upload-dragover' : '',
+        ].join(' '),
+
         ondragover: e => {
           e.preventDefault();
+
+          if (this.containsFiles(e))
+            this.upload.dragOver = true;
         },
         ondragleave: e => {
           e.preventDefault();
+          this.upload.dragOver = false;
         },
         ondrop: e => {
-          this.uploadImages([...e.dataTransfer.files]);
+          e.preventDefault();
+
+          this.upload.dragOver = false;
+
+          if (this.containsFiles(e))
+            this.uploadImages([...e.dataTransfer.files]);
         },
         onclick: e => {
           document.querySelector('#imageIn').click();
         }
       }, [
-        m('div.upload-header', this.uploading ? 
-          `Uploading Images... ${this.upload.curr} / ${this.upload.total}` :
-          'Drag / Click to Upload Files'
-        ),
-        m('div.upload-svg-container', 
-          m('svg', {
-            viewBox:"0 0 24 24",
-          }, m('path', {
-            d: "M11 20H6.5Q4.22 20 2.61 18.43 1 16.85 1 14.58 1 12.63 2.17 11.1 3.35 9.57 5.25 9.15 5.88 6.85 7.75 5.43 9.63 4 12 4 14.93 4 16.96 6.04 19 8.07 19 11 20.73 11.2 21.86 12.5 23 13.78 23 15.5 23 17.38 21.69 18.69 20.38 20 18.5 20H13V12.85L14.6 14.4L16 13L12 9L8 13L9.4 14.4L11 12.85Z",
-          }))
+        this.displayProgressBar(),
+
+        m('div.upload-content',
+          vnode.attrs.active ?
+            this.displayUploadInstructions() :
+            vnode.children
         )
       ]),
 

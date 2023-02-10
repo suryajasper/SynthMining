@@ -15,7 +15,16 @@ class ImageView {
   }
 
   view(vnode) {
-    return m('div.img-view-container', [
+    return m('div.img-view-container', {
+      onclick: e => {
+        e.preventDefault();
+        e.stopPropagation();
+      },
+      onmouseover: e => {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, [
       m('div.img-view-content', {
         title: vnode.attrs.name,
       }, [
@@ -28,7 +37,7 @@ class ImageView {
 
 export default class ImageList {
   view(vnode) {
-    return m('div.img-list-container', 
+    return m('div.img-list-container',
       vnode.attrs.images.map(
         img => m(ImageView, img)
       )
