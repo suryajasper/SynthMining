@@ -1,6 +1,8 @@
 @import './vars.scss';
 
-$left-width: 30%;
+$left-size: 30%;
+$top-size: 20vh;
+$global-gap: 12px;
 
 body {
   height: 100%;
@@ -19,7 +21,7 @@ body {
   margin-top: 8px;
   margin-bottom: 8px;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: $global-gap;
   
   .project-tag-item {
     font-size: 1em;
@@ -31,9 +33,9 @@ body {
 }
 
 .left-container {
-  width: $left-width;
-  padding: 12px;
-  height: calc(100vh - 12px * 2);
+  width: $left-size;
+  margin: $global-gap;
+  height: calc(100vh - $global-gap * 2);
   max-height: 100vh;
   overflow-y: scroll;
   background-color: $background;
@@ -47,9 +49,28 @@ body {
   justify-content: center;
   align-items: center;
   width: 100%;
-  max-width: calc(100% - $left-width);
-  margin: 12px;
-  height: calc(100vh - 12px * 2);
+  max-width: calc(100% - $left-size - $global-gap * 2 - 2px);
+  margin: $global-gap;
+  height: calc(100vh - $global-gap * 2);
+  border-left: 1px solid $text-color;
+}
+
+@media screen and (max-width: 1000px) {
+  .project-page {
+    flex-direction: column;
+  }
+  .left-container {
+    border-bottom: 1px solid black;
+    width: calc(100vw - $global-gap * 2);
+    height: calc($top-size - $global-gap * 2);
+  }
+
+  .right-container {
+    max-height: calc(100vh - $top-size - $global-gap * 2 - 2px);
+    max-width: calc(100vw - $global-gap * 2);;
+    width: 100%;
+    border-left: 0;
+  }
 }
 
 .upload-container {
