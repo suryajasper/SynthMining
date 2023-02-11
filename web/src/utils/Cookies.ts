@@ -1,10 +1,11 @@
 const Cookies = {
-  set(name, value, hours) {
-    let expr = '';
+  set(name : string, value : string, hours? : number) : void {
+    let expr : string = '';
 
     if (hours) {
-      const now = new Date();
-      const exprDate = new Date();
+      const now : Date = new Date();
+      const exprDate : Date = new Date();
+
       exprDate.setTime(now.getTime() + hours*60*60*1000);
       expr = exprDate.toUTCString();
     }
@@ -12,9 +13,8 @@ const Cookies = {
     document.cookie = `${name}=${value}; expires=${expr};"`;
   },
 
-  get(name) {
-    const cookieAttrs = document.cookie.split(';');
-    console.log(cookieAttrs);
+  get(name : string) : string | undefined {
+    const cookieAttrs : string[] = document.cookie.split(';');
 
     for (let cookie of cookieAttrs) {
       cookie = cookie.trim();
@@ -25,7 +25,7 @@ const Cookies = {
     return undefined;
   },
 
-  erase(name) {
+  erase(name: string) : void {
     document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
   },
 }

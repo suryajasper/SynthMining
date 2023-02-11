@@ -1,14 +1,14 @@
 import m from 'mithril';
 
-// import '../css/icons.scss';
+interface IconAttrs {
+  path: string;
+}
 
-const ICON_COLOR = '#6066c7';
-
-const Icon = {
-  view(vnode) {
+const Icon : m.Component<IconAttrs> = {
+  view({attrs} : m.CVnode<IconAttrs>) {
     return m('svg.svg-icon', { viewBox: '0 0 24 24', },
       m('path', {
-        d: vnode.attrs.path,
+        d: attrs.path,
       })
     );
   }

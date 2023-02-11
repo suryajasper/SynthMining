@@ -7,39 +7,33 @@ import '../css/image-list.scss';
 import { fetchRequest } from '../utils/utils';
 import Cookies from '../utils/Cookies';
 
-import { EditTagPopup, CategorySelections} from './category-list';
-import { PopupOverlay, updatePopupOverlayStatus } from './popup';
+import { EditTagPopup, CategorySelections, CategorySelectionsAttrs, EditTagPopupAttrs} from './category-list';
+import { Popup, PopupAttrs, PopupOverlay, updatePopupOverlayStatus } from './popup';
 import ImageUpload from './fileupload';
 import ImageList from './img-view';
-/*
-function ProjectInfo(vnode) {
-  return {
-    view(vnode) {
-      return m('div.info-container', [
-        m('span.project-title', vnode.attrs.name),
+import { ImageAttrs, ProjectAttrs, ProjectBaseAttrs, TagAttrs } from './project-loader';
 
-        m('div.project-description-container', [
+export default class ProjectPage implements m.ClassComponent<{projectId: string}> {
+  private uid: string | undefined;
+  private projectId: string;
+  
+  private info: object;
 
-          m('div.project-tags-list', vnode.attrs.tags.map(
-            tag => m('div.project-tag-item', tag)
-          )),
+  private tags: TagAttrs[];
+  private colors: string[];
+  private images: ImageAttrs[];
 
-            m('div.project-description', vnode.attrs.description),
+  private popups: Record<string, {
+    view: any,
+    attrs: PopupAttrs,
+  }>;
 
-        ]),
-      ]);
-    },
-  };
-}
-*/
-export default class ProjectPage {
-  constructor(vnode) {
+  constructor(vnode : m.CVnode<{projectId: string}>) {
     this.uid = Cookies.get('uid');
     this.projectId = vnode.attrs.projectId;
 
     if (!this.uid) m.route.set('/login');
     
-    this.editing = false;
     this.info = {
       name: '',
       description: '',
@@ -51,29 +45,39 @@ export default class ProjectPage {
     this.colors = [];
     this.images = [];
 
-    this.popups = {
-      'editTag': EditTagPopup,
-    };
-
-    Object.keys(this.popups).forEach(popupName => {
-      const popupView = this.popups[popupName];
-      this.popups[popupName] = {
-        view: popupView,
-        attrs: {
-          active: true,
-          data: {},
-
-          disabledCallback: this.inactivateAllPopups.bind(this),
-          reloadCallback: this.fetchProject.bind(this),
-        },
-      }
-    });
+    this.initializePopups();    
 
     this.fetchProject();
   }
 
-  fetchProject() {
-    fetchRequest('/getProject', {
+  initializePopups() : void {
+    this.popups = {};
+
+    const popupViews = {
+      'editTag': EditTagPopup,
+    }
+    
+    Object.keys(popupViews).forEach(popupName => {
+      const popupView = popupViews[popupName];
+      const attrs : EditTagPopupAttrs = {
+        active: true,
+        data: undefined,
+
+        disabledCallback: this.inactivateAllPopups.bind(this),
+        reloadCallback: this.fetchProject.bind(this),
+      };
+
+      this.popups[popupName] = {
+        view: popupView,
+        attrs,
+      }
+    });
+  }
+
+  fetchProject() : void {
+    if (!this.uid) return;
+
+    fetchRequest<ProjectAttrs>('/getProject', {
       method: 'GET',
       query: {
         projectId: this.projectId,
@@ -98,8 +102,8 @@ export default class ProjectPage {
       .catch(console.error)
   }
 
-  addTag() {
-    fetchRequest('/createTag', {
+  addTag() : void {
+    fetchRequest<TagAttrs>('/createTag', {
       method: 'POST',
       body: {
         projectId: this.projectId,
@@ -114,7 +118,7 @@ export default class ProjectPage {
       .catch(console.log)
   }
 
-  fetchImages(cat) {
+  fetchImages() : void {
     let params = {
       img_count: this.images.length,
     };
@@ -123,45 +127,43 @@ export default class ProjectPage {
       params[`id_${i}`] = img._id;
     })
 
-    m.request('http://localhost:2003/getImages', {
+    m.request<{images: string[]}>('http://localhost:2003/getImages', {
       method: 'GET',
       params,
     }).then(res => {
-      if (!res.err && res.images) {
-        this.images = this.images.map((imgData, i) => 
-          Object.assign(imgData, {src: res.images[i]})
-        );
-        m.redraw();
-      }
+      this.images = this.images.map((imgData, i) => 
+        Object.assign(imgData, {src: res.images[i]})
+      );
+      m.redraw();
     }).catch(console.error)
   }
 
-  isPopupActive() {
+  isPopupActive() : boolean {
     return Object.values(this.popups)
-      .map(popup => popup.active)
-      .reduce((a, b) => a + b);
+      .map(popup => popup.attrs.active)
+      .reduce((a, b) => a || b);
   }
 
-  inactivateAllPopups() {
+  inactivateAllPopups() : void {
     updatePopupOverlayStatus({ active: false });
 
     Object.values(this.popups).forEach(popup => {
-      popup.active = false;
+      popup.attrs.active = false;
     })
   }
 
-  updatePopupStatus({ name, active, data }) {
+  updatePopupStatus({ name, active, data }) : void {
     if (this.isPopupActive() || !this.popups[name]) 
       return;
     
     updatePopupOverlayStatus({ active });
     this.popups[name].attrs.active = active;
     this.popups[name].attrs.data = data;
-    console.log(this.popups);
     m.redraw();
   }
 
   view(vnode) {
+
     return m('div.project-page', [
 
       m(PopupOverlay, {
@@ -175,11 +177,12 @@ export default class ProjectPage {
 
       m('div.left-container', [
         m(CategorySelections, {
-          categories: this.tags,
           uid: this.uid,
           projectId: this.projectId,
+    
+          categories: this.tags,
           colors: this.colors,
-
+    
           res: this.fetchImages.bind(this),
           addTag: this.addTag.bind(this),
           updatePopupStatus: this.updatePopupStatus.bind(this),
@@ -192,7 +195,6 @@ export default class ProjectPage {
           active: this.images.length === 0,
           uid: this.uid, 
           projectId: this.projectId,
-          imgSrcs: this.images,
           status: e => {
             if (!e.err)
               this.fetchProject();

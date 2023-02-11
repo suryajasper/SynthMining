@@ -4,7 +4,7 @@ import Login from './views/login';
 import Main from './views/main';
 import ProjectPage from './views/project-page';
 
-function LoginRouter() {
+function LoginRouter() : m.Component {
   return {
     view(vnode) {
       return m(Login, {signup: false,});
@@ -12,7 +12,7 @@ function LoginRouter() {
   };
 }
 
-function SignupRouter() {
+function SignupRouter() : m.Component {
   return {
     view(vnode) {
       return m(Login, {signup: true,});

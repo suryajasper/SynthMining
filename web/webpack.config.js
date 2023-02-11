@@ -26,6 +26,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
+  entry: './src/index.ts',
   mode: 'development',
   plugins: [
     new webpack.ProgressPlugin(),
@@ -49,6 +50,7 @@ module.exports = {
   ],
 
   resolve: {
+    extensions: ['.ts', '.tsx', '.js'],
     fallback: {
       "fs": false,
       "tls": false,
@@ -64,13 +66,13 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.(js|jsx)$/,
+        test: /\.(ts|tsx|js|jsx)$/,
         include: [path.resolve(__dirname, 'src')],
         use: [
           {
             loader: 'babel-loader',   
             options: {
-              presets: ['@babel/preset-env']
+              presets: ['@babel/preset-typescript']
             }         
           },
         ],

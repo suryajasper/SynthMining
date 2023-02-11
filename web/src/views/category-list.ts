@@ -1,11 +1,25 @@
 import m from 'mithril';
 import '../css/tags.scss';
 import { fetchRequest, initArr } from '../utils/utils';
-import { Popup } from './popup';
+import { Popup, PopupAttrs } from './popup';
 import { icons } from './icons';
+import { TagAttrs } from './project-loader';
 
-export class EditTagPopup extends Popup {
-  constructor(vnode) {
+export interface EditTagPopupAttrs extends PopupAttrs {
+  active: boolean;
+  data: {
+    tag: TagAttrs,
+    projectId: string,
+    uid: string,
+  } | undefined;
+}
+
+export class EditTagPopup extends Popup implements m.ClassComponent<EditTagPopupAttrs> {
+  private tagId: string | undefined;
+  private uid: string | undefined;
+  private projectId: string | undefined;
+
+  constructor(vnode: m.CVnode<EditTagPopupAttrs>) {
     super();
 
     this.actions = [
@@ -14,13 +28,13 @@ export class EditTagPopup extends Popup {
     ];
   }
 
-  onupdate(vnode) {
-    this.tagId = vnode.attrs.data?.tag?._id;
-    this.projectId = vnode.attrs.data.projectId;
-    this.uid = vnode.attrs.data.uid;
+  onupdate({attrs}: m.CVnodeDOM<EditTagPopupAttrs>): void {
+    this.tagId = attrs.data?.tag._id;
+    this.projectId = attrs.data?.projectId;
+    this.uid = attrs.data?.uid;
   }
 
-  saveTag(vnode) {
+  saveTag(vnode: m.CVnode<EditTagPopupAttrs>): void {
     fetchRequest('/updateTag', {
       method: 'POST',
       body: {
@@ -28,8 +42,8 @@ export class EditTagPopup extends Popup {
         projectId: this.projectId,
         tagId: this.tagId,
         update: {
-          name: this.input.tagName,
-          description: this.input.tagDescription,
+          name: this.input['tagName'],
+          description: this.input['tagDescription'],
         },
       }
     })
@@ -39,7 +53,7 @@ export class EditTagPopup extends Popup {
       })
   }
 
-  removeTag(vnode) {
+  removeTag(vnode: m.CVnode<EditTagPopupAttrs>): void {
     fetchRequest('/removeTag', {
       method: 'POST',
       body: {
@@ -54,8 +68,8 @@ export class EditTagPopup extends Popup {
       })
   }
 
-  loadPopupContent(vnode) {
-    let {tag} = vnode.attrs.data;
+  loadPopupContent({attrs}: m.CVnode<EditTagPopupAttrs>): m.Children {
+    let tag = attrs.data?.tag;
 
     this.title = `Edit ${tag?.name}`;
     m.redraw();
@@ -64,26 +78,46 @@ export class EditTagPopup extends Popup {
       this.createInputGroup({
         id: 'tagName',
         displayTitle: 'Name',
-        initialValue: tag?.name,
+        initialValue: tag?.name || '',
       }),
       this.createInputGroup({
         id: 'tagDescription',
         displayTitle: 'Description',
         type: 'textarea',
-        initialValue: tag?.description,
+        initialValue: tag?.description || '',
       }),
     ];
   }
 }
 
-export class CategorySelections {
-  constructor(vnode) {
-    this.selected = [];
+export interface CategorySelectionsAttrs {
+  uid: string | undefined;
+  projectId: string;
 
-    this.updatePopupStatus = vnode.attrs.updatePopupStatus;
+  categories: TagAttrs[];
+  colors: string[];
+
+  addTag() : void;
+  res(tag: TagAttrs) : void;
+  updatePopupStatus(state: {
+    name: string,
+    active: boolean,
+    data: object,
+  }) : void;
+}
+
+export class CategorySelections implements m.ClassComponent<CategorySelectionsAttrs> {
+  private selected: boolean[];
+
+  constructor(vnode: m.CVnode<CategorySelectionsAttrs>) {
+    this.selected = [];
   }
 
-  createCategoryItem(vnode, tag, i) {
+  createCategoryItem(
+    vnode: m.CVnode<CategorySelectionsAttrs>, 
+    tag: TagAttrs, 
+    i: number,
+  ) {
     return m('div.category-item', {
       class: this.selected[i] ? 'selected' : '',
       onclick: e => {
@@ -109,7 +143,7 @@ export class CategorySelections {
           onclick: e => {
             e.stopPropagation();
 
-            this.updatePopupStatus({
+            vnode.attrs.updatePopupStatus({
               name: 'editTag', 
               active: true,
               data: {
@@ -126,7 +160,7 @@ export class CategorySelections {
     ]);
   }
 
-  view(vnode) {
+  view(vnode: m.CVnode<CategorySelectionsAttrs>) {
     if (this.selected.length != vnode.attrs.categories.length)
       this.selected = initArr(vnode.attrs.categories.length, true);
     

@@ -70,9 +70,13 @@ export async function getProject(params: {
   if (!project)
     throw Error('Project not found');
 
+  let images = await ImageModel.find({ projectId }).lean() || [];
+  let tags   = await TagModel  .find({ projectId }).lean() || [];
+
+  images.forEach(img => { img.src = ''; })
+
   project = Object.assign(project, {
-    images : await ImageModel.find({ projectId }).exec() || [],
-    tags   : await TagModel  .find({ projectId }).exec() || [],
+    images, tags,
   });
 
   return project;
@@ -260,7 +264,7 @@ export async function removeTag(params: {
 }
 
 export async function getAllProjects() {
-  const allProjects: mongoose.Document[] = await ProjectModel.find({}).exec();
+  const allProjects: mongoose.Document[] = await ProjectModel.find({}).lean();
 
   return allProjects;
 }

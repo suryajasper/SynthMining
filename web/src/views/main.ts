@@ -3,9 +3,13 @@ import '../css/main.scss';
 import Cookies from '../utils/Cookies';
 import { fetchRequest } from '../utils/utils';
 import ProjectPreview from './project-preview';
+import { ProjectBaseAttrs } from './project-loader';
 
-export default class Main {
-  constructor(vnode) {
+export default class Main implements m.ClassComponent<any> {
+  private uid: string | undefined;
+  private projects: ProjectBaseAttrs[];
+
+  constructor(vnode : m.CVnode<any>) {
     this.uid = Cookies.get('uid');
     if (!this.uid) m.route.set('/login');
 
@@ -14,8 +18,10 @@ export default class Main {
     this.fetchProjects();
   }
 
-  fetchProjects() {
-    fetchRequest('/getAllProjects', {
+  fetchProjects() : void {
+    if (!this.uid) return;
+
+    fetchRequest<Array<ProjectBaseAttrs>>('/getAllProjects', {
       method: 'GET',
       query: { uid: this.uid },
     })
@@ -26,7 +32,7 @@ export default class Main {
       })
   }
 
-  view(vnode) {
+  view(vnode : m.CVnode<any>) {
     return m('div.main-body',
       m('div.projects-grid', 
         this.projects.map(proj => 

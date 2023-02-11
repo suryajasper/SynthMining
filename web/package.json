@@ -31,6 +31,8 @@
   "devDependencies": {
     "@babel/core": "^7.20.12",
     "@babel/preset-env": "^7.20.2",
+    "@babel/preset-typescript": "^7.18.6",
+    "@types/mithril": "^2.0.12",
     "@types/node": "^18.11.18",
     "babel-loader": "^9.1.2",
     "babel-plugin-syntax-dynamic-import": "^6.18.0",

@@ -1,8 +1,32 @@
 import m from 'mithril';
 import { fetchRequest, randId } from '../utils/utils';
 
-export default class ImageUpload {
-  constructor(vnode) {
+type ImageFile = {
+  file: File;
+  id: string;
+}
+
+interface ImageUploadAttrs {
+  uid: string | undefined;
+  projectId: string | undefined;
+  active: boolean;
+  status: (res: any) => void;
+}
+
+export default class ImageUpload implements m.ClassComponent<ImageUploadAttrs> {
+  private status: (any) => void;
+
+  private uid: string | undefined;
+  private projectId: string | undefined;
+
+  private upload: {
+    dragOver: boolean;
+    uploading: boolean;
+    curr: number;
+    total: number;
+  }
+
+  constructor(vnode : m.CVnode<ImageUploadAttrs>) {
     this.status = vnode.attrs.status;
 
     this.uid = vnode.attrs.uid;
@@ -16,33 +40,33 @@ export default class ImageUpload {
     }
   }
 
-  uploadToServer(imgBatch) {
-    const formdata = new FormData();
+  uploadToServer(imgBatch : ImageFile[]) {
+    if (!this.uid || !this.projectId) return;
+
+    const formdata : FormData = new FormData();
     
     for (let i = 0; i < imgBatch.length; i++) {
-      let { imgFile, imgId } = imgBatch[i];
-      
-      formdata.append(`${i}`, imgFile);
-      formdata.append('img_ids[]', imgId);
+      formdata.append(`${i}`, imgBatch[i].file);
+      formdata.append('img_ids[]', imgBatch[i].id);
     }
     
     formdata.append('uid', this.uid);
 
-    formdata.append('batch_size', imgBatch.length);
+    formdata.append('batch_size', imgBatch.length.toString());
     
     return new Promise((res, rej) => {
       var xhr = new XMLHttpRequest();
       xhr.open("POST", "http://localhost:2003/uploadImages", true);
       xhr.onload = function() {
-        if (this.status === 200) res();
+        if (this.status === 200) res('success');
         else rej();
       };
       xhr.send(formdata);
     });
   }
 
-  async getImageIds(imgNames) {
-    const { imageIds } = await fetchRequest('/addImages', {
+  async getImageIds(imgNames: string[]) : Promise<string[]> {
+    const { imageIds } = await fetchRequest<{imageIds: string[]}>('/addImages', {
       method: 'POST',
       body: {
         uid: this.uid,
@@ -54,30 +78,26 @@ export default class ImageUpload {
     return imageIds;
   }
 
-  async uploadImages(files) {
+  async uploadImages(files : File[]) {
+    const BATCH_SIZE: number = 1;
+
     this.upload.uploading = true;
 
     this.upload.curr = 0;
     this.upload.total = files.length;
 
-    let fileCopy = [...files];
-
-    let fileNames = fileCopy.map(
+    let fileNames = files.map(
       file => file.name.split('.')[0]
     );
 
     let imageIds = await this.getImageIds(fileNames);
 
-    fileCopy = fileCopy.map((imgFile, i) => {
-      return {
-        imgFile, imgId: imageIds[i],
-      }
+    let fileCopy: ImageFile[] = files.map((file, i) => {
+      return { file, id: imageIds[i], };
     });
     
-    const BATCH_SIZE = 1;
-
     while (fileCopy.length > 0) {
-      let batch = fileCopy.splice(0, BATCH_SIZE);
+      let batch: ImageFile[] = fileCopy.splice(0, BATCH_SIZE);
       
       await this.uploadToServer(batch);
 
@@ -92,8 +112,8 @@ export default class ImageUpload {
     this.status('success');
   }
 
-  containsFiles(event) {
-    if (event.dataTransfer.types) {
+  containsFiles(event: DragEvent) : boolean {
+    if (event.dataTransfer?.types) {
       for (var i = 0; i < event.dataTransfer.types.length; i++) {
         if (event.dataTransfer.types[i] == "Files") {
           return true;
@@ -104,7 +124,7 @@ export default class ImageUpload {
     return false;
   }
 
-  displayUploadInstructions() {
+  displayUploadInstructions() : m.Children {
     return [
       m('div.upload-header', this.upload.uploading ? 
         `Uploading Images... ${this.upload.curr} / ${this.upload.total}` :
@@ -120,7 +140,7 @@ export default class ImageUpload {
     ];
   }
 
-  displayProgressBar() {
+  displayProgressBar() : m.Children {
     return m('div.progress-bar', {
       style: {
         width: `${this.upload.curr / this.upload.total * 100}%`,
@@ -128,7 +148,7 @@ export default class ImageUpload {
     });
   }
 
-  view(vnode) {
+  view(vnode : m.CVnode<ImageUploadAttrs>) {
     return [
       m('div.upload-container', {
         class: [
@@ -136,26 +156,27 @@ export default class ImageUpload {
           this.upload.dragOver ? 'upload-dragover' : '',
         ].join(' '),
 
-        ondragover: e => {
+        ondragover: (e: DragEvent) => {
           e.preventDefault();
 
           if (this.containsFiles(e))
             this.upload.dragOver = true;
         },
-        ondragleave: e => {
+        ondragleave: (e : DragEvent) => {
           e.preventDefault();
           this.upload.dragOver = false;
         },
-        ondrop: e => {
+        ondrop: (e: DragEvent) => {
           e.preventDefault();
 
           this.upload.dragOver = false;
 
-          if (this.containsFiles(e))
-            this.uploadImages([...e.dataTransfer.files]);
+          if (this.containsFiles(e) && e.dataTransfer)
+            this.uploadImages(Array.from(e.dataTransfer.files));
         },
-        onclick: e => {
-          document.querySelector('#imageIn').click();
+        onclick: () => {
+          const fileInputEl : HTMLElement = document.querySelector('#imageIn') as HTMLElement;
+          fileInputEl.click();
         }
       }, [
         this.displayProgressBar(),
@@ -175,7 +196,7 @@ export default class ImageUpload {
         multiple: true, 
         hidden:"hidden", 
         onchange: async e => {
-          await this.uploadImages([...e.target.files]);
+          await this.uploadImages(Array.from(e.target.files));
         }
       })
     ];
