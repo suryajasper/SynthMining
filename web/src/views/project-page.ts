@@ -7,26 +7,27 @@ import '../css/image-list.scss';
 import { fetchRequest } from '../utils/utils';
 import Cookies from '../utils/Cookies';
 
-import { EditTagPopup, CategorySelections, CategorySelectionsAttrs, EditTagPopupAttrs} from './category-list';
-import { Popup, PopupAttrs, PopupOverlay, updatePopupOverlayStatus } from './popup';
+import { EditTagPopup } from './popups/edit-tag-popup';
+import { PopupOverlay } from './popups/popup';
+import PopupManager from './popups/popup-manager';
+
+import { CategorySelections } from './category-list';
 import ImageUpload from './fileupload';
 import ImageList from './img-view';
-import { ImageAttrs, ProjectAttrs, ProjectBaseAttrs, TagAttrs } from './project-loader';
+
+import { ImageAttrs, ProjectAttrs, TagAttrs } from './project-loader';
 
 export default class ProjectPage implements m.ClassComponent<{projectId: string}> {
   private uid: string | undefined;
   private projectId: string;
+
+  private popupManager: PopupManager;
   
   private info: object;
 
   private tags: TagAttrs[];
   private colors: string[];
   private images: ImageAttrs[];
-
-  private popups: Record<string, {
-    view: any,
-    attrs: PopupAttrs,
-  }>;
 
   constructor(vnode : m.CVnode<{projectId: string}>) {
     this.uid = Cookies.get('uid');
@@ -45,33 +46,11 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
     this.colors = [];
     this.images = [];
 
-    this.initializePopups();    
+    this.popupManager = new PopupManager();
+    this.popupManager.setReloadCallback(this.fetchProject);
+    this.popupManager.linkPopup('editTag', EditTagPopup);
 
     this.fetchProject();
-  }
-
-  initializePopups() : void {
-    this.popups = {};
-
-    const popupViews = {
-      'editTag': EditTagPopup,
-    }
-    
-    Object.keys(popupViews).forEach(popupName => {
-      const popupView = popupViews[popupName];
-      const attrs : EditTagPopupAttrs = {
-        active: true,
-        data: undefined,
-
-        disabledCallback: this.inactivateAllPopups.bind(this),
-        reloadCallback: this.fetchProject.bind(this),
-      };
-
-      this.popups[popupName] = {
-        view: popupView,
-        attrs,
-      }
-    });
   }
 
   fetchProject() : void {
@@ -138,28 +117,23 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
     }).catch(console.error)
   }
 
-  isPopupActive() : boolean {
-    return Object.values(this.popups)
-      .map(popup => popup.attrs.active)
-      .reduce((a, b) => a || b);
-  }
-
-  inactivateAllPopups() : void {
-    updatePopupOverlayStatus({ active: false });
-
-    Object.values(this.popups).forEach(popup => {
-      popup.attrs.active = false;
+  removeImages(imageIds: string[]) : void {
+    fetchRequest('/removeImages', {
+      method: 'POST',
+      body: {
+        uid: this.uid,
+        projectId: this.projectId,
+        imageIds,
+      },
     })
+      .then(() => {
+        this.images = this.images.filter(img => !imageIds.includes(img._id));
+      })
   }
 
-  updatePopupStatus({ name, active, data }) : void {
-    if (this.isPopupActive() || !this.popups[name]) 
-      return;
-    
-    updatePopupOverlayStatus({ active });
-    this.popups[name].attrs.active = active;
-    this.popups[name].attrs.data = data;
-    m.redraw();
+  unshiftSelection(i: number) {
+    let selectedTag = this.tags.splice(i, 1);
+    this.tags.unshift(...selectedTag);
   }
 
   view(vnode) {
@@ -167,9 +141,9 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
     return m('div.project-page', [
 
       m(PopupOverlay, {
-        disabledCallback: this.inactivateAllPopups.bind(this),
+        disabledCallback: this.popupManager.inactivateAllPopups.bind(this.popupManager),
       },
-        Object.values(this.popups)
+        Object.values(this.popupManager.popups)
           .map(popup => 
             m(popup.view, popup.attrs)
           )
@@ -185,7 +159,8 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
     
           res: this.fetchImages.bind(this),
           addTag: this.addTag.bind(this),
-          updatePopupStatus: this.updatePopupStatus.bind(this),
+          updatePopupStatus: this.popupManager.updatePopupStatus.bind(this.popupManager),
+          unshiftSelection: this.unshiftSelection.bind(this),
         }),
       ]),
 
@@ -202,7 +177,9 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
         },
           this.images.length > 0 ? 
             m(ImageList, {
-              images: this.images
+              images: this.images,
+
+              removeImages: this.removeImages.bind(this),
             }) : null 
         ),
 

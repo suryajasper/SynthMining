@@ -1,7 +1,7 @@
 @import './vars.scss';
 
 $left-size: 30%;
-$top-size: 20vh;
+$top-size: max(20vh, 140px);
 $global-gap: 12px;
 
 body {

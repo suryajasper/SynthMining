@@ -1,6 +1,6 @@
 import m from 'mithril';
-import '../css/popup.scss';
-import { icons } from './icons';
+import '../../css/popup.scss';
+import { icons } from '../icons';
 
 const popupStatus = {
   active: false,

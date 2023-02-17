@@ -1,5 +1,14 @@
 @import './vars.scss';
 
+.img-list-header {
+  display: none;
+  flex-direction: row;
+  
+  &.active {
+    display: flex;
+  }
+}
+
 .img-list-container {
   display: flex;
   flex-direction: row;
@@ -21,9 +30,26 @@
   color: $background;
   border-radius: 6px;
   height: fit-content;
+  transition: 0.5s;
 
   &:hover {
     background-color: $primary-1;
+  }
+
+  &.selected {
+    background-color: $primary-1;
+
+    img.image-display {
+      border-radius: 4px;
+      //transform: scale(0.8);
+      transition: 0.5s;
+    }
+  }
+
+  &.not-selected {
+    filter: opacity(0.6);
+    transform: scale(0.9);
+    transition: 0.5s;
   }
   
   .img-view-content {
@@ -37,6 +63,7 @@
   img.image-display {
     width: $img-view-size;
     height: $img-view-size;
+    transition: 0.5s;
   }
 
   .image-title {

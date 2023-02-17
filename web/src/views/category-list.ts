@@ -1,94 +1,50 @@
 import m from 'mithril';
 import '../css/tags.scss';
 import { fetchRequest, initArr } from '../utils/utils';
-import { Popup, PopupAttrs } from './popup';
 import { icons } from './icons';
 import { TagAttrs } from './project-loader';
 
-export interface EditTagPopupAttrs extends PopupAttrs {
-  active: boolean;
-  data: {
-    tag: TagAttrs,
-    projectId: string,
-    uid: string,
-  } | undefined;
+interface CategoryViewAttrs {
+  tagName: TagAttrs;
+  selected: boolean;
+  color: string;
+  select: () => void;
+  activatePopup: () => void;
 }
 
-export class EditTagPopup extends Popup implements m.ClassComponent<EditTagPopupAttrs> {
-  private tagId: string | undefined;
-  private uid: string | undefined;
-  private projectId: string | undefined;
+const CategoryView : m.Component<CategoryViewAttrs> = {
+  view({attrs}) {
+    const tag = attrs.tagName;
 
-  constructor(vnode: m.CVnode<EditTagPopupAttrs>) {
-    super();
+    return m('div.category-item', {
+      class: attrs.selected ? 'selected' : '',
+      onclick: attrs.select,
+    }, [
+      m('div.category-header', [
+        m('span.category-item-color', {
+          style: {
+            backgroundColor: attrs.color,
+          }
+        }),
+        m('span.category-item-title', tag.name),
+      ]),
+      
+      m('div.category-description', tag.description),
 
-    this.actions = [
-      {name: 'Save', res: () => this.saveTag(vnode)},
-      {name: 'Remove', res: () => this.removeTag(vnode)},
-    ];
+      m('div.hover-menu', 
+        m('button.tag-edit-button', {
+          onclick: e => {
+            e.stopPropagation();
+
+            attrs.activatePopup();
+          }
+        }, 
+          icons.gear,
+        )
+      )
+    ]);
   }
-
-  onupdate({attrs}: m.CVnodeDOM<EditTagPopupAttrs>): void {
-    this.tagId = attrs.data?.tag._id;
-    this.projectId = attrs.data?.projectId;
-    this.uid = attrs.data?.uid;
-  }
-
-  saveTag(vnode: m.CVnode<EditTagPopupAttrs>): void {
-    fetchRequest('/updateTag', {
-      method: 'POST',
-      body: {
-        uid: this.uid,
-        projectId: this.projectId,
-        tagId: this.tagId,
-        update: {
-          name: this.input['tagName'],
-          description: this.input['tagDescription'],
-        },
-      }
-    })
-      .then(res => {
-        this.hidePopup(vnode);
-        vnode.attrs.reloadCallback();
-      })
-  }
-
-  removeTag(vnode: m.CVnode<EditTagPopupAttrs>): void {
-    fetchRequest('/removeTag', {
-      method: 'POST',
-      body: {
-        uid: this.uid,
-        projectId: this.projectId,
-        tagId: this.tagId,
-      }
-    })
-      .then(res => {
-        this.hidePopup(vnode);
-        vnode.attrs.reloadCallback();
-      })
-  }
-
-  loadPopupContent({attrs}: m.CVnode<EditTagPopupAttrs>): m.Children {
-    let tag = attrs.data?.tag;
-
-    this.title = `Edit ${tag?.name}`;
-    m.redraw();
-
-    return [
-      this.createInputGroup({
-        id: 'tagName',
-        displayTitle: 'Name',
-        initialValue: tag?.name || '',
-      }),
-      this.createInputGroup({
-        id: 'tagDescription',
-        displayTitle: 'Description',
-        type: 'textarea',
-        initialValue: tag?.description || '',
-      }),
-    ];
-  }
-}
+};
 
 export interface CategorySelectionsAttrs {
   uid: string | undefined;
@@ -104,6 +60,7 @@ export interface CategorySelectionsAttrs {
     active: boolean,
     data: object,
   }) : void;
+  unshiftSelection(i: number);
 }
 
 export class CategorySelections implements m.ClassComponent<CategorySelectionsAttrs> {
@@ -114,61 +71,50 @@ export class CategorySelections implements m.ClassComponent<CategorySelectionsAt
   }
 
   createCategoryItem(
-    vnode: m.CVnode<CategorySelectionsAttrs>, 
-    tag: TagAttrs, 
+    vnode: m.CVnode<CategorySelectionsAttrs>,
     i: number,
-  ) {
-    return m('div.category-item', {
-      class: this.selected[i] ? 'selected' : '',
-      onclick: e => {
-        if (this.selected[i-1] || !(this.selected[i])) {
-          this.selected = initArr(this.selected.length, false);
-          this.selected[i] = true;
+  ) : m.Vnode<CategoryViewAttrs> {
+    const tag = vnode.attrs.categories[i];
 
-          vnode.attrs.res(tag);
+    return m(CategoryView, {
+      tagName: tag,
+      selected: this.selected[i],
+      color: vnode.attrs.colors[i],
+
+      select: () => {
+        if (!this.selected[i]) {
+          vnode.attrs.unshiftSelection(i);
+          for (let j = this.selected.length-1; j >= 1; j--)
+            this.selected[j] = this.selected[j-1];
+          this.selected[0] = true;
         } else {
-          this.selected = initArr(this.selected.length, true);
+          this.selected[i] = false;
         }
-      }
-    }, [
-      m('span.category-item-color', {
-        style: {
-          backgroundColor: vnode.attrs.colors[i]
-        }
-      }),
-      m('span.category-item-title', tag.name),
+      },
 
-      m('div.hover-menu', 
-        m('button.tag-edit-button', {
-          onclick: e => {
-            e.stopPropagation();
-
-            vnode.attrs.updatePopupStatus({
-              name: 'editTag', 
-              active: true,
-              data: {
-                projectId: vnode.attrs.projectId,
-                uid: vnode.attrs.uid,
-                tag,
-              },
-            });
-          }
-        }, 
-          icons.gear,
-        )
-      )
-    ]);
+      activatePopup: () => {
+        vnode.attrs.updatePopupStatus({
+          name: 'editTag', 
+          active: true,
+          data: {
+            projectId: vnode.attrs.projectId,
+            uid: vnode.attrs.uid,
+            tag,
+          },
+        });
+      },
+    })
   }
 
   view(vnode: m.CVnode<CategorySelectionsAttrs>) {
     if (this.selected.length != vnode.attrs.categories.length)
-      this.selected = initArr(vnode.attrs.categories.length, true);
+      this.selected = initArr<boolean>(vnode.attrs.categories.length, false);
     
     return m('div.category-container', [
       m('div.category-content',
         (vnode.attrs.categories || [])
           .map((cat, i) => 
-            this.createCategoryItem(vnode, cat, i)
+            this.createCategoryItem(vnode, i)
           )
           .concat([
             m('div.category-item.new-category-button.selected', {
