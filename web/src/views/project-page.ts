@@ -4,7 +4,7 @@ import colorGen from 'iwanthue';
 import '../css/project-page.scss';
 import '../css/image-list.scss';
 
-import { fetchRequest } from '../utils/utils';
+import { fetchRequest, initArr } from '../utils/utils';
 import Cookies from '../utils/Cookies';
 
 import { EditTagPopup } from './popups/edit-tag-popup';
@@ -30,6 +30,7 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
   private images: ImageAttrs[];
 
   private selectedImages: string[];
+  private highlightedTags: string[];
 
   constructor(vnode : m.CVnode<{projectId: string}>) {
     this.uid = Cookies.get('uid');
@@ -49,6 +50,7 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
     this.images = [];
 
     this.selectedImages = [];
+    this.highlightedTags = [];
 
     this.popupManager = new PopupManager();
     this.popupManager.setReloadCallback(this.fetchProject);
@@ -123,6 +125,39 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
       byId[img._id] = img;
 
     return byId;
+  }
+
+  refreshHighlightedCategories() : void {
+    this.highlightedTags = [];
+    let imgInfo = this.imageById;
+
+    for (let i = 0; i < this.tags.length; i++) {
+      let tagId = this.tags[i]._id;
+      let tagInAll = true;
+
+      for (let j = 0; j < this.selectedImages.length; j++) {
+        let img = imgInfo[this.selectedImages[j]];
+        if (!img.tags.includes(tagId)) {
+          tagInAll = false;
+          break;
+        }
+      }
+
+      if (tagInAll) 
+        this.highlightedTags.push(tagId);
+    }
+  }
+
+  overrideHighlightedCategories(highlightedIds: string[]) : void {
+    if (highlightedIds.length > 0)
+      this.highlightedTags = highlightedIds;
+    else
+      this.refreshHighlightedCategories();
+  }
+
+  updateImageSelection(selectedIds: string[]) : void {
+    this.selectedImages = selectedIds;
+    this.refreshHighlightedCategories();
   }
 
   fetchImages() : void {
@@ -207,6 +242,7 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
           projectId: this.projectId,
     
           categories: this.tags,
+          activeCategories: this.highlightedTags,
           
           addTag: this.addTag.bind(this),
           updatePopupStatus: this.popupManager.updatePopupStatus.bind(this.popupManager),
@@ -234,14 +270,8 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
               tagById: this.tagById,
 
               removeImages: this.removeImages.bind(this),
-              changeImageSelection: selectedIds => {
-                this.selectedImages = selectedIds;
-              },
-              changeTagHighlight: highlightedIds => {
-                for (let tag of this.tags) {
-                  tag.highlighted = highlightedIds.includes(tag._id);
-                }
-              },
+              changeImageSelection: this.updateImageSelection.bind(this),
+              changeTagHighlight: this.overrideHighlightedCategories.bind(this),
             }) : null 
         ),
 

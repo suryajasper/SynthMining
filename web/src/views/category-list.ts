@@ -7,6 +7,7 @@ import { TagAttrs } from './project-loader';
 interface CategoryViewAttrs {
   tagName: TagAttrs;
   selected: boolean;
+  highlighted: boolean;
   color: string;
   applyToImageMode: boolean;
 
@@ -21,7 +22,7 @@ const CategoryView : m.Component<CategoryViewAttrs> = {
 
     return m('div.category-item', {
       class: [
-        (attrs.selected || attrs.applyToImageMode || tag.highlighted) ? 'selected' : '',
+        (attrs.selected || attrs.highlighted) ? 'selected' : '',
         attrs.selected ? 'show-category-description' : '',
       ].join(' '),
       onclick: (e: MouseEvent) => {
@@ -63,6 +64,7 @@ export interface CategorySelectionsAttrs {
   projectId: string;
 
   categories: TagAttrs[];
+  activeCategories: string[];
 
   addTag: () => void;
   updatePopupStatus: (state: {
@@ -86,15 +88,16 @@ export class CategorySelections implements m.ClassComponent<CategorySelectionsAt
   createCategoryItem(
     attrs: CategorySelectionsAttrs,
     i: number,
-    applyToImageMode: boolean,
   ) : m.Vnode<CategoryViewAttrs> {
     const tag = attrs.categories[i];
+    let isHighlighted = attrs.activeCategories.includes(tag._id);
 
     return m(CategoryView, {
       tagName: tag,
-      selected: this.selected[i],
+      selected: attrs.applyToImageMode ? false : this.selected[i],
+      highlighted: isHighlighted,
       color: attrs.categories[i].color,
-      applyToImageMode,
+      applyToImageMode: attrs.applyToImageMode,
 
       select: () => {
         if (!this.selected[i]) {
@@ -136,7 +139,7 @@ export class CategorySelections implements m.ClassComponent<CategorySelectionsAt
       m('div.category-content',
         (attrs.categories || [])
           .map((_, i) => 
-            this.createCategoryItem(attrs, i, attrs.applyToImageMode)
+            this.createCategoryItem(attrs, i)
           )
           .concat(attrs.applyToImageMode ? 
             [] : [
