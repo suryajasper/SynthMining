@@ -29,6 +29,8 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
   private colors: string[];
   private images: ImageAttrs[];
 
+  private selectedImages: string[];
+
   constructor(vnode : m.CVnode<{projectId: string}>) {
     this.uid = Cookies.get('uid');
     this.projectId = vnode.attrs.projectId;
@@ -45,6 +47,8 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
     this.tags = [];
     this.colors = [];
     this.images = [];
+
+    this.selectedImages = [];
 
     this.popupManager = new PopupManager();
     this.popupManager.setReloadCallback(this.fetchProject);
@@ -67,14 +71,20 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
         console.log('projectInfo', projectInfo);
 
         this.info = projectInfo;
-        this.tags = projectInfo.tags;
         this.images = projectInfo.images;
 
         if (this.images.length > 0)
           this.fetchImages();
 
-        if (this.tags.length > 0)
-          this.colors = colorGen(this.tags.length);
+        if (projectInfo.tags.length > 0)
+          this.colors = colorGen(projectInfo.tags.length);
+        
+        this.tags = projectInfo.tags
+          .map((tag: TagAttrs, i: number) => 
+            Object.assign(tag, {
+              color: this.colors[i],
+            })
+          );
 
         m.redraw();
       })
@@ -95,6 +105,24 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
         m.redraw();
       })
       .catch(console.log)
+  }
+
+  get tagById() : Record<string, TagAttrs> {
+    let byId = {};
+
+    for (let tag of this.tags)
+      byId[tag._id] = tag;
+
+    return byId;
+  }
+
+  get imageById() : Record<string, ImageAttrs> {
+    let byId = {};
+
+    for (let img of this.images)
+      byId[img._id] = img;
+
+    return byId;
   }
 
   fetchImages() : void {
@@ -127,7 +155,31 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
       },
     })
       .then(() => {
+        console.log('then');
         this.images = this.images.filter(img => !imageIds.includes(img._id));
+        m.redraw();
+      })
+  }
+
+  applyTagToImages(tag: TagAttrs) {
+    console.log('sending request to apply tag', tag.name);
+    fetchRequest<{updateCount: number}>('/updateImages', {
+      method: 'POST',
+      body: {
+        uid: this.uid,
+        projectId: this.projectId,
+        imageIds: this.selectedImages,
+        addTags: [tag._id],
+      }
+    })
+      .then(res => {
+        console.log('applied tags', tag);
+        for (let img of this.images) {
+          if (this.selectedImages.includes(img._id)) {
+            img.tags.push(tag._id);
+          }
+        }
+        m.redraw();
       })
   }
 
@@ -155,12 +207,13 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
           projectId: this.projectId,
     
           categories: this.tags,
-          colors: this.colors,
-    
-          res: this.fetchImages.bind(this),
+          
           addTag: this.addTag.bind(this),
           updatePopupStatus: this.popupManager.updatePopupStatus.bind(this.popupManager),
           unshiftSelection: this.unshiftSelection.bind(this),
+
+          applyToImageMode: this.selectedImages.length > 0, 
+          applyToImage: this.applyTagToImages.bind(this),
         }),
       ]),
 
@@ -178,8 +231,12 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
           this.images.length > 0 ? 
             m(ImageList, {
               images: this.images,
+              tagById: this.tagById,
 
               removeImages: this.removeImages.bind(this),
+              changeImageSelection: selectedIds => {
+                this.selectedImages = selectedIds;
+              },
             }) : null 
         ),
 

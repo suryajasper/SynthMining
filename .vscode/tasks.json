@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run npm dev server on startup",
+      "type": "shell",
+      "command": "cd web; npm run dev",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "runOptions": { "runOn": "folderOpen" }
+    },
+    {
+      "label": "Run backend server on startup",
+      "type": "shell",
+      "command": "cd web; cd web-server; npx ts-node server.ts",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "runOptions": { "runOn": "folderOpen" }
+    },
+    {
+      "label": "Run python image server",
+      "type": "shell",
+      "command": "cd img-server; python serve-imgs.py",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "runOptions": { "runOn": "folderOpen" }
+    },
+  ]
+}

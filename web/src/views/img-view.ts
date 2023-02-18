@@ -1,11 +1,15 @@
 import m from 'mithril';
-import { ImageAttrs } from './project-loader';
+import { ImageAttrs, TagAttrs } from './project-loader';
 import { icons } from './icons';
 import { initArr } from '../utils/utils';
 
 const base64ImgHeader = (imgData: string) => `data:image/jpg;base64,${imgData}`;
 
-interface ImageDisplayAttrs extends ImageAttrs {
+interface ISharedImageAttrs {
+  tagById: Record<string, TagAttrs>;
+}
+
+interface ImageDisplayAttrs extends ImageAttrs, ISharedImageAttrs {
   selected: boolean;
   obscured: boolean;
   select: (shiftKey?: boolean) => void;
@@ -45,6 +49,11 @@ class ImageView implements m.ClassComponent<ImageDisplayAttrs> {
       }, [
         m('img.image-display', { src: base64ImgHeader(attrs.src) }),
         m('span.image-title', this.trimText(attrs.name)),
+        m('div.image-tag-list', attrs.tags.map(tag => 
+          m('span.image-tag-color', {
+            style: { backgroundColor: attrs.tagById[tag].color },
+          })
+        ))
       ])
     ])
   }
@@ -68,10 +77,11 @@ const IconButton: m.Component<{
   }
 }
 
-interface ImageListAttrs {
+interface ImageListAttrs extends ISharedImageAttrs {
   images: Array<ImageAttrs>;
   
-  removeImages: (imageIds: string[]) => void;
+  removeImages: (imageIds: string[]) => Promise<any>;
+  changeImageSelection: (selectedIds: string[]) => void;
 }
 
 export default class ImageList implements m.ClassComponent<ImageListAttrs>
@@ -81,6 +91,7 @@ export default class ImageList implements m.ClassComponent<ImageListAttrs>
     last: number;
   };
   private images: ImageAttrs[];
+  private changeImageSelection: (selectedIds: string[]) => void;
 
   constructor({attrs}: m.CVnode<ImageListAttrs>) {
     this.selection = {
@@ -88,20 +99,28 @@ export default class ImageList implements m.ClassComponent<ImageListAttrs>
       last: 0,
     };
     this.images = [];
+    this.changeImageSelection = attrs.changeImageSelection;
   }
 
   onupdate(vnode: m.CVnodeDOM<ImageListAttrs>) {
+    if (this.images.length !== vnode.attrs.images.length)
+      console.log('thre was an image update');
     this.images = vnode.attrs.images || [];
+
+    if (this.images.length != this.selection.selected.length)
+      this.selection.selected = initArr<boolean>(this.images.length, false);
   }
 
   clearSelection() : void {
     for (let i = 0; i < this.selection.selected.length; i++)
       this.selection.selected[i] = false;
+    this.changeImageSelection(this.selectedIds);
   }
 
   selectAll() : void {
     for (let i = 0; i < this.selection.selected.length; i++)
       this.selection.selected[i] = true;
+      this.changeImageSelection(this.selectedIds);
   }
 
   select(i: number, shiftKey?: boolean) : void {
@@ -114,6 +133,8 @@ export default class ImageList implements m.ClassComponent<ImageListAttrs>
     }
 
     this.selection.last = i;
+
+    this.changeImageSelection(this.selectedIds);
   }
 
   get selectedIds() {
@@ -141,26 +162,36 @@ export default class ImageList implements m.ClassComponent<ImageListAttrs>
         m(IconButton, {
           title: 'Select All',
           icon: icons.cloud,
-          onclick: this.selectAll.bind(this),
+          onclick: () => {
+            this.selectAll();
+          },
         }),
         m(IconButton, {
           title: 'Clear Selection',
           icon: icons.exit,
-          onclick: this.clearSelection.bind(this),
+          onclick: () => {
+            this.clearSelection();
+          },
         }),
         m(IconButton, {
           title: 'Delete Images',
           icon: icons.trash,
-          onclick: e => attrs.removeImages(this.selectedIds),
+          onclick: e => {
+            attrs.removeImages(this.selectedIds);
+            this.clearSelection();
+          },
         }),
       ]),
 
       m('div.img-list-container',
         this.images.map(
           (img, i) => m(ImageView, Object.assign(img, {
-            select: (shiftKey: boolean) => this.select(i, shiftKey),
+            select: (shiftKey: boolean) => {
+              this.select(i, shiftKey);
+            },
             selected: this.selection.selected[i],
             obscured: this.selectedCount > 0 && !this.selection.selected[i],
+            tagById: attrs.tagById,
           }))
         )
       )

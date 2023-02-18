@@ -8,7 +8,10 @@ interface CategoryViewAttrs {
   tagName: TagAttrs;
   selected: boolean;
   color: string;
+  applyToImageMode: boolean;
+
   select: () => void;
+  applyToImage: () => void;
   activatePopup: () => void;
 }
 
@@ -17,8 +20,13 @@ const CategoryView : m.Component<CategoryViewAttrs> = {
     const tag = attrs.tagName;
 
     return m('div.category-item', {
-      class: attrs.selected ? 'selected' : '',
-      onclick: attrs.select,
+      class: (attrs.selected || attrs.applyToImageMode) ? 'selected' : '',
+      onclick: (e: MouseEvent) => {
+        if (attrs.applyToImageMode)
+          attrs.applyToImage();
+        else
+          attrs.select();
+      },
     }, [
       m('div.category-header', [
         m('span.category-item-color', {
@@ -31,17 +39,18 @@ const CategoryView : m.Component<CategoryViewAttrs> = {
       
       m('div.category-description', tag.description),
 
-      m('div.hover-menu', 
-        m('button.tag-edit-button', {
-          onclick: e => {
-            e.stopPropagation();
+      attrs.applyToImageMode ? null : 
+        m('div.hover-menu', 
+          m('button.tag-edit-button', {
+            onclick: e => {
+              e.stopPropagation();
 
-            attrs.activatePopup();
-          }
-        }, 
-          icons.gear,
+              attrs.activatePopup();
+            }
+          }, 
+            icons.gear,
+          )
         )
-      )
     ]);
   }
 };
@@ -51,16 +60,17 @@ export interface CategorySelectionsAttrs {
   projectId: string;
 
   categories: TagAttrs[];
-  colors: string[];
 
-  addTag() : void;
-  res(tag: TagAttrs) : void;
-  updatePopupStatus(state: {
+  addTag: () => void;
+  updatePopupStatus: (state: {
     name: string,
     active: boolean,
     data: object,
-  }) : void;
-  unshiftSelection(i: number);
+  }) => void;
+  unshiftSelection: (i: number) => void;
+  applyToImage: (tag: TagAttrs) => void;
+
+  applyToImageMode: boolean;
 }
 
 export class CategorySelections implements m.ClassComponent<CategorySelectionsAttrs> {
@@ -71,19 +81,21 @@ export class CategorySelections implements m.ClassComponent<CategorySelectionsAt
   }
 
   createCategoryItem(
-    vnode: m.CVnode<CategorySelectionsAttrs>,
+    attrs: CategorySelectionsAttrs,
     i: number,
+    applyToImageMode: boolean,
   ) : m.Vnode<CategoryViewAttrs> {
-    const tag = vnode.attrs.categories[i];
+    const tag = attrs.categories[i];
 
     return m(CategoryView, {
       tagName: tag,
       selected: this.selected[i],
-      color: vnode.attrs.colors[i],
+      color: attrs.categories[i].color,
+      applyToImageMode,
 
       select: () => {
         if (!this.selected[i]) {
-          vnode.attrs.unshiftSelection(i);
+          attrs.unshiftSelection(i);
           for (let j = this.selected.length-1; j >= 1; j--)
             this.selected[j] = this.selected[j-1];
           this.selected[0] = true;
@@ -92,13 +104,17 @@ export class CategorySelections implements m.ClassComponent<CategorySelectionsAt
         }
       },
 
+      applyToImage: () => {
+        attrs.applyToImage(attrs.categories[i]);
+      },
+
       activatePopup: () => {
-        vnode.attrs.updatePopupStatus({
+        attrs.updatePopupStatus({
           name: 'editTag', 
           active: true,
           data: {
-            projectId: vnode.attrs.projectId,
-            uid: vnode.attrs.uid,
+            projectId: attrs.projectId,
+            uid: attrs.uid,
             tag,
           },
         });
@@ -106,24 +122,29 @@ export class CategorySelections implements m.ClassComponent<CategorySelectionsAt
     })
   }
 
-  view(vnode: m.CVnode<CategorySelectionsAttrs>) {
-    if (this.selected.length != vnode.attrs.categories.length)
-      this.selected = initArr<boolean>(vnode.attrs.categories.length, false);
+  view({attrs}: m.CVnode<CategorySelectionsAttrs>) {
+    if (this.selected.length != attrs.categories.length)
+      this.selected = initArr<boolean>(attrs.categories.length, false);
     
     return m('div.category-container', [
+      attrs.applyToImageMode ?
+        m('span.category-list-header', 'Click Tags to Apply to Images') : null,
+
       m('div.category-content',
-        (vnode.attrs.categories || [])
-          .map((cat, i) => 
-            this.createCategoryItem(vnode, i)
+        (attrs.categories || [])
+          .map((_, i) => 
+            this.createCategoryItem(attrs, i, attrs.applyToImageMode)
           )
-          .concat([
-            m('div.category-item.new-category-button.selected', {
-              onclick: vnode.attrs.addTag,
-            }, [
-              m('span.category-item-new-icon', '+'),
-              m('span.category-item-title', 'Add Tag'),
-            ])
-          ])
+          .concat(attrs.applyToImageMode ? 
+            [] : [
+              m('div.category-item.new-category-button.selected', {
+                onclick: attrs.addTag,
+              }, [
+                m('span.category-item-new-icon', '+'),
+                m('span.category-item-title', 'Add Tag'),
+              ])
+            ]
+          )
       ),
     ]);
   }

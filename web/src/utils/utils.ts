@@ -38,8 +38,11 @@ export function fetchRequest<ResponseType>(
 
     
     fetch(url, options)
-      .then(res => res.json())
-      .then(resolve)
+      .then(res => {
+        res.json()
+          .then(resolve)
+          .catch(() => resolve(null));
+      })
       .catch(reject)
     
   })

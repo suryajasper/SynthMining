@@ -1,4 +1,5 @@
 import express from 'express';
+import axios from 'axios';
 
 import * as db from './db-functions';
 
@@ -119,9 +120,21 @@ app.post('/removeImages', async (req, res) => {
   if (!req.body.uid || !req.body.projectId || !req.body.imageIds) 
     return res.status(400).send({err: 'missing required fields'});
 
-  db.removeImages(req.body)
-    .then(data => res.status(200).send(data))
-    .catch(err => res.status(400).send({err}))
+  try {
+    await db.removeImages(req.body);
+    
+    await axios.post('http://localhost:2003/removeImages', {
+      'img_ids': req.body.imageIds,
+    });
+
+    res.status(200).send('success');
+  }
+  catch (err: unknown) {
+    console.log(err);
+    res.status(400).send(err);
+  }
+
+
 });
 
 app.post('/createTag', (req, res) => {

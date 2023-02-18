@@ -1,3 +1,13 @@
+export interface TagAttrs {
+  _id: string,
+  
+  name: string,
+  color: string,
+  description: string,
+  goalQty: number,
+  
+  projectId: string,
+}
 
 export interface ImageAttrs {
   _id: string,
@@ -10,16 +20,6 @@ export interface ImageAttrs {
   validated: boolean,
 
   src: string,
-}
-
-export interface TagAttrs {
-  _id: string,
-
-  name: string,
-  description: string,
-  goalQty: number,
-
-  projectId: string,
 }
 
 export interface ProjectBaseAttrs {

@@ -56,8 +56,6 @@ def get_images():
   img_count = request.args.get('img_count', type=int)
   img_ids = [request.args.get(f'id_{i}') for i in range(img_count)]
 
-  print(img_ids)
-
   if not img_ids or len(img_ids) == 0:
     return 'bad request', 400
 
@@ -71,6 +69,22 @@ def get_images():
   return {
     'images': images,
   }
+
+@app.route('/removeImages', methods=['POST'])
+@cross_origin()
+def remove_images():
+  body = request.get_json(force=True)
+  img_ids = body['img_ids']
+
+  if not img_ids or len(img_ids) == 0:
+    return 'bad request', 400
+
+  for id in img_ids:
+    img_fpath = path.join(DIR_PATH, f'{id}.jpg')
+    if path.exists(img_fpath):
+      remove(img_fpath)
+  
+  return f'successfully removed {len(img_ids)} images'
 
 if __name__ == '__main__':
   app.run(port=PORT)

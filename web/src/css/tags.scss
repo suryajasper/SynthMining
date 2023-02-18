@@ -6,6 +6,12 @@
   overflow: scroll;
 }
 
+.category-container > .category-list-header {
+  padding: 12px;
+  color: $text-color;
+  font-style: italic;
+}
+
 .category-content {
   padding: 12px;
   display: flex;
