@@ -33,6 +33,7 @@
 
     &.new-category-button {
       flex-direction: row;
+      background-color: rgb(10, 103, 59);
     }
     
     &.selected {
@@ -63,7 +64,7 @@
       font-size: 0.8em;
     }
 
-    &:not(.selected) .category-description {
+    &:not(.show-category-description) .category-description {
       display: none;
     }
     .category-description {

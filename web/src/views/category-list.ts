@@ -20,7 +20,10 @@ const CategoryView : m.Component<CategoryViewAttrs> = {
     const tag = attrs.tagName;
 
     return m('div.category-item', {
-      class: (attrs.selected || attrs.applyToImageMode) ? 'selected' : '',
+      class: [
+        (attrs.selected || attrs.applyToImageMode || tag.highlighted) ? 'selected' : '',
+        attrs.selected ? 'show-category-description' : '',
+      ].join(' '),
       onclick: (e: MouseEvent) => {
         if (attrs.applyToImageMode)
           attrs.applyToImage();
@@ -140,7 +143,7 @@ export class CategorySelections implements m.ClassComponent<CategorySelectionsAt
               m('div.category-item.new-category-button.selected', {
                 onclick: attrs.addTag,
               }, [
-                m('span.category-item-new-icon', '+'),
+                m('span.category-item-new-icon'),
                 m('span.category-item-title', 'Add Tag'),
               ])
             ]

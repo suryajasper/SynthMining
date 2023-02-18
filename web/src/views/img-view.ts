@@ -7,12 +7,20 @@ const base64ImgHeader = (imgData: string) => `data:image/jpg;base64,${imgData}`;
 
 interface ISharedImageAttrs {
   tagById: Record<string, TagAttrs>;
+  changeTagHighlight: (highlightedTagIds: string[]) => void; 
 }
 
 interface ImageDisplayAttrs extends ImageAttrs, ISharedImageAttrs {
   selected: boolean;
   obscured: boolean;
   select: (shiftKey?: boolean) => void;
+}
+
+interface ImageListAttrs extends ISharedImageAttrs {
+  images: Array<ImageAttrs>;
+  
+  removeImages: (imageIds: string[]) => Promise<any>;
+  changeImageSelection: (selectedIds: string[]) => void;
 }
 
 class ImageView implements m.ClassComponent<ImageDisplayAttrs> {
@@ -39,10 +47,19 @@ class ImageView implements m.ClassComponent<ImageDisplayAttrs> {
         attrs.select(e.shiftKey);
       },
 
-      onmouseover: (e: MouseEvent) => {
+      onmouseenter: (e: MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-      }
+
+        attrs.changeTagHighlight(attrs.tags);
+      },
+
+      onmouseleave: (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        attrs.changeTagHighlight([]);
+      },
     }, [
       m('div.img-view-content', {
         title: attrs.name,
@@ -75,13 +92,6 @@ const IconButton: m.Component<{
       m('span', attrs.title),
     ]);
   }
-}
-
-interface ImageListAttrs extends ISharedImageAttrs {
-  images: Array<ImageAttrs>;
-  
-  removeImages: (imageIds: string[]) => Promise<any>;
-  changeImageSelection: (selectedIds: string[]) => void;
 }
 
 export default class ImageList implements m.ClassComponent<ImageListAttrs>
@@ -191,7 +201,9 @@ export default class ImageList implements m.ClassComponent<ImageListAttrs>
             },
             selected: this.selection.selected[i],
             obscured: this.selectedCount > 0 && !this.selection.selected[i],
+
             tagById: attrs.tagById,
+            changeTagHighlight: attrs.changeTagHighlight,
           }))
         )
       )

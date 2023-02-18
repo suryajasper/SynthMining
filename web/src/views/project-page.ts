@@ -237,6 +237,11 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
               changeImageSelection: selectedIds => {
                 this.selectedImages = selectedIds;
               },
+              changeTagHighlight: highlightedIds => {
+                for (let tag of this.tags) {
+                  tag.highlighted = highlightedIds.includes(tag._id);
+                }
+              },
             }) : null 
         ),
 

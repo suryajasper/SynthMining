@@ -1,12 +1,13 @@
 export interface TagAttrs {
   _id: string,
+  projectId: string,
   
   name: string,
   color: string,
   description: string,
   goalQty: number,
   
-  projectId: string,
+  highlighted?: boolean,
 }
 
 export interface ImageAttrs {
