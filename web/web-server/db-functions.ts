@@ -170,10 +170,10 @@ export async function updateImages(params: {
   let updateData = {}
 
   if (params.removeTags && params.removeTags.length > 0)
-    updateData['$pull'] = { tags: { $in  : params.removeTags || [] } };
+    updateData['$pull'] = { tags: { $in: params.removeTags } };
   
   if (params.addTags && params.addTags.length > 0)
-    updateData['$push'] = { tags: { $each: params.addTags    || [] } };
+    updateData['$addToSet'] = { tags: { $each: params.addTags } };
   
   if (params.validate) updateData['validated'] = true;
 
@@ -183,7 +183,7 @@ export async function updateImages(params: {
     { multi: true, upsert: true, }
   ).exec();
 
-  return { updateCount: updateRes.modifiedCount };
+  return updateRes;
 }
 
 export async function removeImages(params: {

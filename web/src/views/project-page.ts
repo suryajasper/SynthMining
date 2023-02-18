@@ -30,7 +30,7 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
   private images: ImageAttrs[];
 
   private selectedImages: string[];
-  private highlightedTags: string[];
+  private highlightedTags: Record<string, number>;
 
   constructor(vnode : m.CVnode<{projectId: string}>) {
     this.uid = Cookies.get('uid');
@@ -50,7 +50,7 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
     this.images = [];
 
     this.selectedImages = [];
-    this.highlightedTags = [];
+    this.highlightedTags = {};
 
     this.popupManager = new PopupManager();
     this.popupManager.setReloadCallback(this.fetchProject);
@@ -88,6 +88,7 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
             })
           );
 
+        this.refreshHighlightedCategories();
         m.redraw();
       })
       .catch(console.error)
@@ -128,29 +129,38 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
   }
 
   refreshHighlightedCategories() : void {
-    this.highlightedTags = [];
+    this.highlightedTags = {};
     let imgInfo = this.imageById;
 
     for (let i = 0; i < this.tags.length; i++) {
       let tagId = this.tags[i]._id;
-      let tagInAll = true;
+
+      this.highlightedTags[tagId] = 0;
+
+      if (this.selectedImages.length === 0)
+        continue;
 
       for (let j = 0; j < this.selectedImages.length; j++) {
         let img = imgInfo[this.selectedImages[j]];
-        if (!img.tags.includes(tagId)) {
-          tagInAll = false;
-          break;
-        }
+        if (img.tags.includes(tagId))
+          this.highlightedTags[tagId]++;
       }
 
-      if (tagInAll) 
-        this.highlightedTags.push(tagId);
+      this.highlightedTags[tagId] /= this.selectedImages.length;
     }
   }
 
   overrideHighlightedCategories(highlightedIds: string[]) : void {
-    if (highlightedIds.length > 0)
-      this.highlightedTags = highlightedIds;
+    if (highlightedIds.length > 0) {
+      this.highlightedTags = {};
+
+      for (let tag of this.tags) {
+        this.highlightedTags[tag._id] = 0;
+
+        if (highlightedIds.includes(tag._id))
+          this.highlightedTags[tag._id] = 1;
+      }
+    }
     else
       this.refreshHighlightedCategories();
   }
@@ -197,23 +207,34 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
   }
 
   applyTagToImages(tag: TagAttrs) {
-    console.log('sending request to apply tag', tag.name);
-    fetchRequest<{updateCount: number}>('/updateImages', {
+    let isAdding = this.highlightedTags[tag._id] < 1;
+    
+    let body = {
+      uid: this.uid,
+      projectId: this.projectId,
+      imageIds: this.selectedImages,
+    };
+
+    if (isAdding) body['addTags'] = [tag._id];
+    else body['removeTags'] = [tag._id];
+
+    fetchRequest<{modifiedCount: number}>('/updateImages', {
       method: 'POST',
-      body: {
-        uid: this.uid,
-        projectId: this.projectId,
-        imageIds: this.selectedImages,
-        addTags: [tag._id],
-      }
+      body,
     })
       .then(res => {
-        console.log('applied tags', tag);
-        for (let img of this.images) {
-          if (this.selectedImages.includes(img._id)) {
+        let imgInfo = this.imageById;
+        
+        for (let imgId of this.selectedImages) {
+          let img = imgInfo[imgId];
+
+          if (!isAdding)
+            img.tags.splice(img.tags.indexOf(tag._id), 1);
+          else if (!img.tags.includes(tag._id))
             img.tags.push(tag._id);
-          }
         }
+        
+        this.refreshHighlightedCategories();
         m.redraw();
       })
   }

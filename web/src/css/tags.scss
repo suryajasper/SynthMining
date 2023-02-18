@@ -20,6 +20,8 @@
   gap: 6px;
   
   .category-item {
+    $min-opacity: 0.5;
+
     cursor: pointer;
     position: relative;
     padding: 8px;
@@ -28,7 +30,7 @@
     color: $background;
     display: flex;
     flex-direction: column;
-    opacity: 0.5;
+    opacity: $min-opacity;
     transition: 0.5s;
 
     &.new-category-button {
@@ -41,8 +43,13 @@
       transition: 0.5s;
     }
 
+    &:not(.selected) {
+      opacity: calc($min-opacity + (1.0 - $min-opacity) * var(--highlight-fill));
+      transition: 0.5s;
+    }
+
     &:not(.selected):hover {
-      opacity: 0.75;
+      opacity: calc((1.0 + $min-opacity) / 2);
       transition: 0.5s;
     }
 
