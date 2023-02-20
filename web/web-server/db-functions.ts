@@ -244,10 +244,10 @@ export async function updateTag(params: {
     { upsert: false, },
   ).exec();
   
-  if (updateRes.modifiedCount > 0)
+  if (updateRes.matchedCount > 0)
     return {res: 'success'};
 
-  throw Error('Could not find project');
+  throw Error('Could not find project or tag');
 }
 
 export async function removeTag(params: {
@@ -255,9 +255,25 @@ export async function removeTag(params: {
   tagId: string,
   projectId: string,
 }) {
+  // ensure user has authority to remove tag
+  const projectDoc : any = await ProjectModel.findById(params.projectId).exec();
+  if (projectDoc.patronId != params.uid)
+    throw Error('Invalid Credentials');
+
+  // remove tag
   await TagModel.findOneAndRemove({
     _id: params.tagId,
-    proejctId: params.projectId,
+    projectId: params.projectId,
+  }).exec();
+
+  // remove deleted tag from images
+  await ImageModel.updateMany({
+    projectId: params.projectId,
+    tags: params.tagId,
+  }, {
+    $pull: {
+      tags: params.tagId,
+    }
   }).exec();
 
   return {res: 'success'};

@@ -53,7 +53,7 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
     this.highlightedTags = {};
 
     this.popupManager = new PopupManager();
-    this.popupManager.setReloadCallback(this.fetchProject);
+    this.popupManager.setReloadCallback(this.fetchProject.bind(this));
     this.popupManager.linkPopup('editTag', EditTagPopup);
 
     this.fetchProject();
@@ -77,18 +77,12 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
 
         if (this.images.length > 0)
           this.fetchImages();
-
-        if (projectInfo.tags.length > 0)
-          this.colors = colorGen(projectInfo.tags.length);
         
-        this.tags = projectInfo.tags
-          .map((tag: TagAttrs, i: number) => 
-            Object.assign(tag, {
-              color: this.colors[i],
-            })
-          );
-
+        this.tags = projectInfo.tags;
+        
+        this.refreshTagColors();
         this.refreshHighlightedCategories();
+
         m.redraw();
       })
       .catch(console.error)
@@ -102,12 +96,65 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
         uid: this.uid,
       }
     })
-      .then(tag => { 
+      .then(tag => {
         this.tags.push(tag);
-        this.colors = colorGen(this.tags.length);
+        this.refreshTagColors();
+        this.refreshHighlightedCategories();
         m.redraw();
       })
       .catch(console.log)
+  }
+
+  updateTag(tagId: string, tagUpdate: {
+    name: string,
+    description: string,
+    goalQty: number,
+  }): void {
+    console.log('updatetag', tagId, tagUpdate);
+    fetchRequest('/updateTag', {
+      method: 'POST',
+      body: {
+        uid: this.uid,
+        projectId: this.projectId,
+        tagId,
+        update: tagUpdate,
+      }
+    })
+      .then(res => {
+        Object.assign(
+          this.tagById[tagId],
+          tagUpdate,
+        );
+        m.redraw();
+      })
+  }
+
+  removeTag(tagId: string): void {
+    fetchRequest('/removeTag', {
+      method: 'POST',
+      body: {
+        uid: this.uid,
+        projectId: this.projectId,
+        tagId,
+      }
+    })
+      .then(res => {
+        let i : number;
+
+        // remove tag from tag list
+        for (i = 0; i < this.tags.length; i++)
+          if (this.tags[i]._id === tagId)
+            this.tags.splice(i, 1);
+        
+        // remove tag from images that include it
+        for (i = 0; i < this.images.length; i++) {
+          let tagIndex = this.images[i].tags.indexOf(tagId);
+          if (tagIndex !== -1)
+            this.images[i].tags.splice(tagIndex, 1);
+        }
+
+        m.redraw();
+      })
   }
 
   get tagById() : Record<string, TagAttrs> {
@@ -126,6 +173,18 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
       byId[img._id] = img;
 
     return byId;
+  }
+
+  refreshTagColors() : void {
+    if (this.tags.length === 0) return;
+
+    this.colors = colorGen(this.tags.length);
+    this.tags = this.tags
+      .map((tag: TagAttrs, i: number) => 
+        Object.assign(tag, {
+          color: this.colors[i],
+        })
+      );
   }
 
   refreshHighlightedCategories() : void {
@@ -200,7 +259,6 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
       },
     })
       .then(() => {
-        console.log('then');
         this.images = this.images.filter(img => !imageIds.includes(img._id));
         m.redraw();
       })
@@ -266,6 +324,9 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
           activeCategories: this.highlightedTags,
           
           addTag: this.addTag.bind(this),
+          updateTag: this.updateTag.bind(this),
+          removeTag: this.removeTag.bind(this),
+
           updatePopupStatus: this.popupManager.updatePopupStatus.bind(this.popupManager),
           unshiftSelection: this.unshiftSelection.bind(this),
 

@@ -71,6 +71,13 @@ export interface CategorySelectionsAttrs {
   activeCategories: Record<string, number>;
 
   addTag: () => void;
+  updateTag: (tagId: string, update: {
+    name: string,
+    description: string,
+    goalQty: number,
+  }) => void;
+  removeTag: (tagId: string) => void;
+
   updatePopupStatus: (state: {
     name: string,
     active: boolean,
@@ -119,6 +126,7 @@ export class CategorySelections implements m.ClassComponent<CategorySelectionsAt
       },
 
       activatePopup: () => {
+        console.log('activating edit tag popup with', tag);
         attrs.updatePopupStatus({
           name: 'editTag', 
           active: true,
@@ -126,6 +134,9 @@ export class CategorySelections implements m.ClassComponent<CategorySelectionsAt
             projectId: attrs.projectId,
             uid: attrs.uid,
             tag,
+
+            updateTag: attrs.updateTag,
+            removeTag: attrs.removeTag,
           },
         });
       },

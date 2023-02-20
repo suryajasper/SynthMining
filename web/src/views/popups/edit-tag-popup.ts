@@ -7,9 +7,16 @@ import { TagAttrs } from '../project-loader';
 export interface EditTagPopupAttrs extends PopupAttrs {
   active: boolean;
   data: {
-    tag: TagAttrs,
-    projectId: string,
-    uid: string,
+    tag: TagAttrs;
+    projectId: string;
+    uid: string;
+
+    updateTag: (tagId: string, update: {
+      name: string,
+      description: string,
+      goalQty: number,
+    }) => void;
+    removeTag: (tagId: string) => void;
   } | undefined;
 }
 
@@ -34,38 +41,17 @@ export class EditTagPopup extends Popup implements m.ClassComponent<EditTagPopup
   }
 
   saveTag(vnode: m.CVnode<EditTagPopupAttrs>): void {
-    fetchRequest('/updateTag', {
-      method: 'POST',
-      body: {
-        uid: this.uid,
-        projectId: this.projectId,
-        tagId: this.tagId,
-        update: {
-          name: this.input['tagName'],
-          description: this.input['tagDescription'],
-          goalQty: this.input['goalQty'],
-        },
-      }
-    })
-      .then(res => {
-        this.hidePopup(vnode);
-        vnode.attrs.reloadCallback();
-      })
+    vnode.attrs.data.updateTag(this.tagId, {
+      name: this.input['tagName'],
+      description: this.input['tagDescription'],
+      goalQty: parseInt(this.input['goalQty']),
+    });
+    this.hidePopup(vnode);
   }
 
   removeTag(vnode: m.CVnode<EditTagPopupAttrs>): void {
-    fetchRequest('/removeTag', {
-      method: 'POST',
-      body: {
-        uid: this.uid,
-        projectId: this.projectId,
-        tagId: this.tagId,
-      }
-    })
-      .then(res => {
-        this.hidePopup(vnode);
-        vnode.attrs.reloadCallback();
-      })
+    vnode.attrs.data.removeTag(this.tagId);
+    this.hidePopup(vnode);
   }
 
   loadPopupContent({attrs}: m.CVnode<EditTagPopupAttrs>): m.Children {
@@ -84,7 +70,7 @@ export class EditTagPopup extends Popup implements m.ClassComponent<EditTagPopup
         id: 'goalQty',
         displayTitle: 'Goal Quantity',
         type: 'number',
-        initialValue: tag?.goalQty.toString() || '',
+        initialValue: tag?.goalQty?.toString() || '',
       }),
       this.createInputGroup({
         id: 'tagDescription',

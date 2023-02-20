@@ -20,7 +20,7 @@ app.post('/createUser', (req, res) => {
     password: req.body.password,
   })
     .then(data => res.status(200).send(data))
-    .catch(err => res.status(400).send({err}))
+    .catch(err => res.status(400).send({err: err.toString()}))
 });
 
 app.post('/authenticateUser', (req, res) => {
@@ -31,7 +31,7 @@ app.post('/authenticateUser', (req, res) => {
 
   db.authenticateUser(req.body)
     .then(data => res.status(200).send(data))
-    .catch(err => res.status(400).send({err}))
+    .catch(err => res.status(400).send({err: err.toString()}))
 });
 
 app.post('/createProject', (req, res) => {
@@ -42,7 +42,7 @@ app.post('/createProject', (req, res) => {
 
   db.createProject(req.body)
     .then(data => res.status(200).send(data))
-    .catch(err => res.status(400).send({err}))
+    .catch(err => res.status(400).send({err: err.toString()}))
 });
 
 app.post('/updateProject', async (req, res) => {
@@ -53,7 +53,7 @@ app.post('/updateProject', async (req, res) => {
   
   db.updateProject(req.body)
     .then(data => res.status(200).send(data))
-    .catch(err => res.status(400).send({err}))
+    .catch(err => res.status(400).send({err: err.toString()}))
 });
 
 app.post('/removeProject', async (req, res) => {
@@ -64,7 +64,7 @@ app.post('/removeProject', async (req, res) => {
 
   db.removeProject(req.body)
     .then(data => res.status(200).send(data))
-    .catch(err => res.status(400).send({err}))
+    .catch(err => res.status(400).send({err: err.toString()}))
 });
 
 app.get('/getAllProjects', async (req, res) => {
@@ -88,7 +88,7 @@ app.get('/getProject', async (req, res) => {
   
   db.getProject(strQuery)
     .then(data => res.status(200).json(data))
-    .catch(err => res.status(400).send({err}))
+    .catch(err => res.status(400).send({err: err.toString()}))
 
 })
 
@@ -100,7 +100,7 @@ app.post('/addImages', (req, res) => {
 
   db.addImages(req.body)
     .then(data => res.status(200).send(data))
-    .catch(err => res.status(400).send({err}))
+    .catch(err => res.status(400).send({err: err.toString()}))
 });
 
 app.post('/updateImages', async (req, res) => {
@@ -111,7 +111,7 @@ app.post('/updateImages', async (req, res) => {
   
   db.updateImages(req.body)
     .then(data => res.status(200).send(data))
-    .catch(err => res.status(400).send({err}))
+    .catch(err => res.status(400).send({err: err.toString()}))
 });
 
 app.post('/removeImages', async (req, res) => {
@@ -145,7 +145,7 @@ app.post('/createTag', (req, res) => {
 
   db.createTag(req.body)
     .then(data => res.status(200).send(data))
-    .catch(err => res.status(400).send({err}))
+    .catch(err => res.status(400).send({err: err.toString()}))
 });
 
 app.post('/updateTag', async (req, res) => {
@@ -156,7 +156,7 @@ app.post('/updateTag', async (req, res) => {
   
   db.updateTag(req.body)
     .then(data => res.status(200).send(data))
-    .catch(err => res.status(400).send({err}))
+    .catch(err => res.status(400).send({err: err.toString()}))
 });
 
 app.post('/removeTag', async (req, res) => {
@@ -167,7 +167,7 @@ app.post('/removeTag', async (req, res) => {
 
   db.removeTag(req.body)
     .then(data => res.status(200).send(data))
-    .catch(err => res.status(400).send({err}))
+    .catch(err => res.status(400).send({err: err.toString()}))
 });
 
 app.post('/')

@@ -10,13 +10,6 @@ function updatePopupOverlayStatus(status: {active: boolean}) : void {
   popupStatus.active = status.active;
 }
 
-window.onkeydown = e => {
-  if (e.key === 'Escape') {
-    updatePopupOverlayStatus({active: false});
-    m.redraw();
-  }
-}
-
 interface PopupOverlayAttrs { disabledCallback(): void; }
 interface PopupOverlayState { prevActive: boolean; }
 
@@ -75,10 +68,14 @@ abstract class Popup implements m.ClassComponent<PopupAttrs> {
     let inputSelector : string = params.type === 'textarea' ? 
       'textarea.input-group-textarea' : 'input.input-group-input';
     
+    if (this.active && this.input[params.id] === undefined) {
+      this.input[params.id] = params.initialValue;
+    }
+
     let inputAttrs = {
       name: params.id, 
       placeholder: params.placeholder,
-      value: this.input[params.id] !== undefined ? this.input[params.id] : params.initialValue,
+      value: this.input[params.id] === undefined ? params.initialValue : this.input[params.id],
       oninput: e => {
         this.input[params.id] = e.target.value;
       },
@@ -114,6 +111,13 @@ abstract class Popup implements m.ClassComponent<PopupAttrs> {
   abstract loadPopupContent(vnode: {attrs: PopupAttrs}) : m.Children;
 
   view(vnode: {attrs: PopupAttrs}) {
+    if (vnode.attrs.active && !this.active)
+      window.onkeydown = e => {
+        if (e.key === 'Escape')
+          this.hidePopup(vnode);
+      };
+    this.active = vnode.attrs.active;
+
     return m('div.popup-container', {
       style: { display: vnode.attrs.active ? 'flex' : 'none', },
       tabindex: 0,
