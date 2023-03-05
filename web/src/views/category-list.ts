@@ -5,6 +5,7 @@ import { icons } from './icons';
 import { TagAttrs } from './project-loader';
 
 interface CategoryViewAttrs {
+  isAdmin: boolean;
   tagName: TagAttrs;
   selected: boolean;
   highlighted: number;
@@ -23,6 +24,7 @@ const CategoryView : m.Component<CategoryViewAttrs> = {
     return m('div.category-item', {
       class: [
         attrs.selected ? 'selected show-category-description' : '',
+        attrs.highlighted ? 'show-category-description' : '',
       ].join(' '),
 
       style: {
@@ -47,7 +49,7 @@ const CategoryView : m.Component<CategoryViewAttrs> = {
       
       m('div.category-description', tag.description),
 
-      attrs.applyToImageMode ? null : 
+      (attrs.applyToImageMode || !attrs.isAdmin) ? null : 
         m('div.hover-menu', 
           m('button.tag-edit-button', {
             onclick: e => {
@@ -65,6 +67,7 @@ const CategoryView : m.Component<CategoryViewAttrs> = {
 
 export interface CategorySelectionsAttrs {
   uid: string | undefined;
+  isAdmin: boolean;
   projectId: string;
 
   categories: TagAttrs[];
@@ -104,6 +107,7 @@ export class CategorySelections implements m.ClassComponent<CategorySelectionsAt
     let isHighlighted = attrs.activeCategories[tag._id];
 
     return m(CategoryView, {
+      isAdmin: attrs.isAdmin,
       tagName: tag,
       selected: attrs.applyToImageMode ? false : this.selected[i],
       highlighted: isHighlighted,
@@ -156,7 +160,7 @@ export class CategorySelections implements m.ClassComponent<CategorySelectionsAt
           .map((_, i) => 
             this.createCategoryItem(attrs, i)
           )
-          .concat(attrs.applyToImageMode ? 
+          .concat((attrs.applyToImageMode || !attrs.isAdmin) ? 
             [] : [
               m('div.category-item.new-category-button.selected', {
                 onclick: attrs.addTag,

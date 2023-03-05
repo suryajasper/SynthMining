@@ -37,7 +37,7 @@ body {
   margin: $global-gap;
   height: calc(100vh - $global-gap * 2);
   max-height: 100vh;
-  overflow-y: scroll;
+  overflow-y: auto;
   background-color: $background;
   color: $background;
   display: flex;

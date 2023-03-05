@@ -17,9 +17,13 @@ interface ImageDisplayAttrs extends ImageAttrs, ISharedImageAttrs {
 }
 
 interface ImageListAttrs extends ISharedImageAttrs {
+  uid: string;
+
   images: Array<ImageAttrs>;
+  isAdmin: boolean;
   
   removeImages: (imageIds: string[]) => Promise<any>;
+  setValidationStatus: (imageIds: string[], validate: boolean) => void;
   changeImageSelection: (selectedIds: string[]) => void;
 }
 
@@ -36,6 +40,7 @@ class ImageView implements m.ClassComponent<ImageDisplayAttrs> {
   view({attrs} : m.CVnode<ImageDisplayAttrs>) {
     return m('div.img-view-container', {
       class: [
+        attrs.validated ? 'img-validated' : '',
         attrs.selected ? 'selected' : '',
         attrs.obscured ? 'not-selected' : '',
       ].join(' '),
@@ -96,6 +101,9 @@ const IconButton: m.Component<{
 
 export default class ImageList implements m.ClassComponent<ImageListAttrs>
 {
+  private uid: string;
+  private isAdmin: boolean;
+
   private selection: {
     selected: boolean[],
     last: number;
@@ -104,6 +112,7 @@ export default class ImageList implements m.ClassComponent<ImageListAttrs>
   private changeImageSelection: (selectedIds: string[]) => void;
 
   constructor({attrs}: m.CVnode<ImageListAttrs>) {
+    this.uid = attrs.uid;
     this.selection = {
       selected: initArr<boolean>(attrs.images.length, false),
       last: 0,
@@ -113,6 +122,8 @@ export default class ImageList implements m.ClassComponent<ImageListAttrs>
   }
 
   onupdate(vnode: m.CVnodeDOM<ImageListAttrs>) {
+    this.isAdmin = vnode.attrs.isAdmin;
+
     if (this.images.length !== vnode.attrs.images.length)
       console.log('thre was an image update');
     this.images = vnode.attrs.images || [];
@@ -133,13 +144,26 @@ export default class ImageList implements m.ClassComponent<ImageListAttrs>
       this.changeImageSelection(this.selectedIds);
   }
 
+  canSelect(i) : boolean {
+    return this.isAdmin || (
+      !this.images[i].validated && 
+      this.images[i].authorId === this.uid
+    );
+  }
+
   select(i: number, shiftKey?: boolean) : void {
     let newVal : boolean = !this.selection.selected[i]
 
-    this.selection.selected[i] = newVal;
+    if (this.canSelect(i))
+      this.selection.selected[i] = newVal;
+    
     if (shiftKey) {
-      for (let j = this.selection.last; j < i; j++)
-        this.selection.selected[j] = newVal;
+      for (let j = this.selection.last; j < i; j++) {
+        if (this.canSelect(j))
+          this.selection.selected[j] = newVal;
+        else
+          this.selection.selected[j] = false;
+      }
     }
 
     this.selection.last = i;
@@ -147,35 +171,47 @@ export default class ImageList implements m.ClassComponent<ImageListAttrs>
     this.changeImageSelection(this.selectedIds);
   }
 
-  get selectedIds() {
+  createImageView(attrs: ImageListAttrs, img, i) : m.Child {
+    return m(ImageView, Object.assign(img, {
+      select: (shiftKey: boolean) => {
+        this.select(i, shiftKey);
+      },
+      selected: this.selection.selected[i],
+      obscured: this.selectedCount > 0 && !this.selection.selected[i],
+
+      tagById: attrs.tagById,
+      changeTagHighlight: attrs.changeTagHighlight,
+    }));
+  }
+
+  get selectedIds() : string[] {
     return this.images
       .map(img => img._id)
       .filter((_, i) => this.selection.selected[i]);
   }
 
-  get selectedCount() {
+  get selectedCount() : number {
     let count = 0;
     for (let val of this.selection.selected)
       if (val) count++;
     return count;
   }
+
+  get isSelectionInvalidated() : boolean {
+    for (let i = 0; i < this.selection.selected.length; i++) {
+      if (this.selection.selected[i] && this.images[i].validated)
+        return false;
+    }
+    return true;
+  }
   
   view({attrs} : m.CVnode<ImageListAttrs>) {
+    let i = 0;
+
     return [
       m('div.img-list-header', {
         class: this.selectedCount > 0 ? 'active' : '',
       }, [
-        m(IconButton, {
-          title: 'Dispatch to GAN',
-          icon: icons.build,
-        }),
-        m(IconButton, {
-          title: 'Select All',
-          icon: icons.cloud,
-          onclick: () => {
-            this.selectAll();
-          },
-        }),
         m(IconButton, {
           title: 'Clear Selection',
           icon: icons.exit,
@@ -183,30 +219,56 @@ export default class ImageList implements m.ClassComponent<ImageListAttrs>
             this.clearSelection();
           },
         }),
-        m(IconButton, {
-          title: 'Delete Images',
-          icon: icons.trash,
-          onclick: e => {
-            attrs.removeImages(this.selectedIds);
-            this.clearSelection();
-          },
-        }),
+
+        this.isSelectionInvalidated ? 
+        [
+          m(IconButton, {
+            title: 'Validate',
+            icon: icons.subscription.bunny,
+            onclick: e => {
+              attrs.setValidationStatus(this.selectedIds, true);
+              this.clearSelection();
+            }
+          }),
+          m(IconButton, {
+            title: 'Reject',
+            icon: icons.trash,
+            onclick: e => {
+              attrs.removeImages(this.selectedIds);
+              this.clearSelection();
+            },
+          }),
+        ] :
+        [
+          m(IconButton, {
+            title: 'Dispatch to GAN',
+            icon: icons.build,
+          }),
+          m(IconButton, {
+            title: 'Delete Images',
+            icon: icons.trash,
+            onclick: e => {
+              attrs.removeImages(this.selectedIds);
+              this.clearSelection();
+            },
+          }),
+        ]
       ]),
 
-      m('div.img-list-container',
-        this.images.map(
-          (img, i) => m(ImageView, Object.assign(img, {
-            select: (shiftKey: boolean) => {
-              this.select(i, shiftKey);
-            },
-            selected: this.selection.selected[i],
-            obscured: this.selectedCount > 0 && !this.selection.selected[i],
-
-            tagById: attrs.tagById,
-            changeTagHighlight: attrs.changeTagHighlight,
-          }))
-        )
-      )
+      m('div.img-list-container', [
+        m('span.img-list-title', 'Unvalidated'),
+        m('div.img-list', 
+          this.images
+            .filter(img => !img.validated)
+            .map(img => this.createImageView(attrs, img, i++))
+        ),
+        m('span.img-list-title', 'Validated'),
+        m('div.img-list', 
+          this.images
+            .filter(img => img.validated)
+            .map(img => this.createImageView(attrs, img, i++))
+        ),
+      ])
     ]
   }
 }

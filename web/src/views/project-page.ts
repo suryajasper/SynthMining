@@ -19,6 +19,8 @@ import { ImageAttrs, ProjectAttrs, TagAttrs } from './project-loader';
 
 export default class ProjectPage implements m.ClassComponent<{projectId: string}> {
   private uid: string | undefined;
+  private isAdmin: boolean;
+
   private projectId: string;
 
   private popupManager: PopupManager;
@@ -34,6 +36,8 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
 
   constructor(vnode : m.CVnode<{projectId: string}>) {
     this.uid = Cookies.get('uid');
+    this.isAdmin = false;
+
     this.projectId = vnode.attrs.projectId;
 
     if (!this.uid) m.route.set('/login');
@@ -61,6 +65,7 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
 
   fetchProject() : void {
     if (!this.uid) return;
+    console.log(this.uid);
 
     fetchRequest<ProjectAttrs>('/getProject', {
       method: 'GET',
@@ -72,8 +77,12 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
       .then(projectInfo => {
         console.log('projectInfo', projectInfo);
 
+        this.isAdmin = projectInfo.patronId === this.uid;
+
         this.info = projectInfo;
-        this.images = projectInfo.images;
+        this.images = projectInfo.images.sort((a, b) => 
+          Number(a.validated) - Number(b.validated)
+        );
 
         if (this.images.length > 0)
           this.fetchImages();
@@ -89,6 +98,8 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
   }
 
   addTag() : void {
+    if (!this.isAdmin) return;
+
     fetchRequest<TagAttrs>('/createTag', {
       method: 'POST',
       body: {
@@ -110,6 +121,8 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
     description: string,
     goalQty: number,
   }): void {
+    if (!this.isAdmin) return;
+
     console.log('updatetag', tagId, tagUpdate);
     fetchRequest('/updateTag', {
       method: 'POST',
@@ -130,6 +143,8 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
   }
 
   removeTag(tagId: string): void {
+    if (!this.isAdmin) return;
+
     fetchRequest('/removeTag', {
       method: 'POST',
       body: {
@@ -264,6 +279,24 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
       })
   }
 
+  setValidationStatus(imageIds: string[], validate: boolean) : void {
+    fetchRequest('/updateImages', {
+      method: 'POST',
+      body: {
+        uid: this.uid,
+        projectId: this.projectId,
+        imageIds,
+        validate,
+      }
+    })
+      .then(() => {
+        for (let id of imageIds)
+          this.imageById[id].validated = validate;
+        
+        m.redraw();
+      })
+  }
+
   applyTagToImages(tag: TagAttrs) {
     let isAdding = this.highlightedTags[tag._id] < 1;
     
@@ -319,6 +352,7 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
         m(CategorySelections, {
           uid: this.uid,
           projectId: this.projectId,
+          isAdmin: this.isAdmin,
     
           categories: this.tags,
           activeCategories: this.highlightedTags,
@@ -348,10 +382,14 @@ export default class ProjectPage implements m.ClassComponent<{projectId: string}
         },
           this.images.length > 0 ? 
             m(ImageList, {
+              isAdmin: this.isAdmin,
+              uid: this.uid,
+
               images: this.images,
               tagById: this.tagById,
 
               removeImages: this.removeImages.bind(this),
+              setValidationStatus: this.setValidationStatus.bind(this),
               changeImageSelection: this.updateImageSelection.bind(this),
               changeTagHighlight: this.overrideHighlightedCategories.bind(this),
             }) : null 

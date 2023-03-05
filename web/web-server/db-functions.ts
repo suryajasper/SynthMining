@@ -65,12 +65,30 @@ export async function getProject(params: {
 }) {
   const { uid, projectId } = params;
 
-  let project : object = await ProjectModel.findById(projectId).lean();
+  let project : any = await ProjectModel.findById(projectId).lean();
 
   if (!project)
     throw Error('Project not found');
+  
+  console.log({uid, projectId});
 
-  let images = await ImageModel.find({ projectId }).lean() || [];
+  let images;
+  if (project.patronId == uid)
+    images = await ImageModel.find({ projectId }).lean() || [];
+  else
+    images = await ImageModel.find({ 
+      $or: [
+        {
+          projectId,
+          authorId: uid,
+        },
+        {
+          projectId,
+          validated: true,
+        }
+      ]
+    }).lean() || [];
+  
   let tags   = await TagModel  .find({ projectId }).lean() || [];
 
   images.forEach(img => { img.src = ''; })
@@ -164,7 +182,6 @@ export async function updateImages(params: {
     _id: { $in: params.imageIds, },
 
     projectId: params.projectId,
-    authorId: params.uid,
   }
 
   let updateData = {}
@@ -195,7 +212,6 @@ export async function removeImages(params: {
     _id: { $in: params.imageIds, },
 
     projectId: params.projectId,
-    authorId: params.uid,
   }).exec();
 
   return { deleteCount: deleteRes.deletedCount };
