@@ -1,5 +1,3 @@
-import m from 'mithril';
-
 import { Popup, PopupAttrs, updatePopupOverlayStatus } from '../popups/popup';
 
 type PopupRecord = Record<string, {
@@ -62,7 +60,5 @@ export default class PopupManager {
 
     this.popups[name].attrs.active = active;
     this.popups[name].attrs.data = data;
-
-    m.redraw();
   }
 }

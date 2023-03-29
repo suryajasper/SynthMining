@@ -1,7 +1,6 @@
-import m from 'mithril';
+import React from 'react';
 import { fetchRequest } from '../../utils/utils';
 import { Popup, PopupAttrs } from './popup';
-import { icons } from '../icons';
 import { TagAttrs } from '../project-loader';
 
 export interface EditTagPopupAttrs extends PopupAttrs {
@@ -20,45 +19,46 @@ export interface EditTagPopupAttrs extends PopupAttrs {
   } | undefined;
 }
 
-export class EditTagPopup extends Popup implements m.ClassComponent<EditTagPopupAttrs> {
+export class EditTagPopup extends Popup {
   private tagId: string | undefined;
   private uid: string | undefined;
   private projectId: string | undefined;
 
-  constructor(vnode: m.CVnode<EditTagPopupAttrs>) {
-    super();
+  constructor(props: EditTagPopupAttrs) {
+    super(props);
 
-    this.actions = [
-      {name: 'Save', res: () => this.saveTag(vnode)},
-      {name: 'Remove', res: () => this.removeTag(vnode)},
-    ];
-  }
-
-  onupdate({attrs}: m.CVnodeDOM<EditTagPopupAttrs>): void {
-    this.tagId = attrs.data?.tag._id;
-    this.projectId = attrs.data?.projectId;
-    this.uid = attrs.data?.uid;
-  }
-
-  saveTag(vnode: m.CVnode<EditTagPopupAttrs>): void {
-    vnode.attrs.data.updateTag(this.tagId, {
-      name: this.input['tagName'],
-      description: this.input['tagDescription'],
-      goalQty: parseInt(this.input['goalQty']),
+    this.setState({
+      actions: [
+        { name: 'Save', res: this.saveTag.bind(this) },
+        { name: 'Remove', res: this.removeTag.bind(this) },
+      ],
     });
-    this.hidePopup(vnode);
   }
 
-  removeTag(vnode: m.CVnode<EditTagPopupAttrs>): void {
-    vnode.attrs.data.removeTag(this.tagId);
-    this.hidePopup(vnode);
+  componentDidUpdate(): void {
+    this.tagId = this.props.data?.tag._id;
+    this.projectId = this.props.data?.projectId;
+    this.uid = this.props.data?.uid;
   }
 
-  loadPopupContent({attrs}: m.CVnode<EditTagPopupAttrs>): m.Children {
-    let tag = attrs.data?.tag;
+  saveTag(): void {
+    this.props.data.updateTag(this.tagId, {
+      name: this.state.input['tagName'],
+      description: this.state.input['tagDescription'],
+      goalQty: parseInt(this.state.input['goalQty']),
+    });
+    this.hidePopup();
+  }
 
-    this.title = `Edit ${tag?.name}`;
-    m.redraw();
+  removeTag(): void {
+    this.props.data.removeTag(this.tagId);
+    this.hidePopup();
+  }
+
+  loadPopupContent(): JSX.Element[] {
+    let tag = this.props.data?.tag;
+
+    this.setState({ title: `Edit ${tag?.name}` });
 
     return [
       this.createInputGroup({
