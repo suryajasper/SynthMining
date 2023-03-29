@@ -11,7 +11,7 @@ interface ProjectPreviewAttrs extends ProjectBaseAttrs {
 
 function ProjectPreview(props: ProjectPreviewAttrs) {
   return (
-    <div className='project-preview-container'>
+    <div key={props._id} className='project-preview-container'>
       <div 
         className='project-preview-content'
         onClick={() => {

@@ -1,33 +1,34 @@
 import React, { useState } from 'react';
 import '../../css/popup.scss';
 import { icons } from '../icons';
+import { PopupManagerState, usePopupStore, withPopupStore } from '../hooks/popup-state';
 
-const popupStatus = {
-  active: false,
-}
+// const popupStatus = {
+//   active: false,
+// }
 
-function updatePopupOverlayStatus(status: {active: boolean}) : void {
-  popupStatus.active = status.active;
-}
+// function updatePopupOverlayStatus(status: {active: boolean}) : void {
+//   popupStatus.active = status.active;
+// }
 
-interface PopupOverlayAttrs { 
-  disabledCallback(): void; 
+interface PopupOverlayAttrs {
   children: JSX.Element[] | JSX.Element;
 }
-interface PopupOverlayState { prevActive: boolean; }
 
-function PopupOverlay(props: PopupOverlayAttrs) {
-  const [prevActive, setPrevActive] = useState(false);
+export function PopupOverlay(props: PopupOverlayAttrs) {
+  // const [prevActive, setPrevActive] = useState(false);
 
-  if (prevActive !== popupStatus.active && !popupStatus.active)
-    props.disabledCallback();
-  setPrevActive(popupStatus.active);
+  // if (prevActive !== popupStatus.active && !popupStatus.active)
+  //   props.disabledCallback();
+  // setPrevActive(popupStatus.active);
+
+  const popupOverlayActive = usePopupStore(state => state.overlayActive);
 
   return (
     <div className={
       [
         'popup-background-blur',
-        popupStatus.active ? 'enabled' : '',
+        popupOverlayActive ? 'enabled' : '',
       ]
         .join(' ')
     }>
@@ -36,10 +37,9 @@ function PopupOverlay(props: PopupOverlayAttrs) {
   );
 }
 
-interface PopupAttrs {
-  active: boolean;
+export interface PopupAttrs {
   data: any;
-  disabledCallback(): void;
+  
   reloadCallback(): void;
 }
 
@@ -63,10 +63,10 @@ interface PopupState {
   actions: PopupAction[];
 }
 
-abstract class Popup 
-  extends React.Component<PopupAttrs, PopupState> {
+abstract class Popup
+  extends React.Component<PopupAttrs & { store: PopupManagerState }, PopupState> {
   
-  constructor(props: PopupAttrs) {
+  constructor(props) {
     super(props);
 
     this.state = {
@@ -91,6 +91,8 @@ abstract class Popup
 
     let inputSelector : string = params.type === 'textarea' ? 
       'textarea.input-group-textarea' : 'input.input-group-input';
+    let inputTag = inputSelector.split('.')[0];
+    let inputClass = inputSelector.split('.')[1];
     
     if (this.state.active && this.state.input[params.id] === undefined) {
       this.setInputValue(params.id, params.initialValue);
@@ -99,8 +101,8 @@ abstract class Popup
     let inputAttrs = {
       name: params.id, 
       placeholder: params.placeholder,
-      value: this.state.input[params.id] === undefined ? params.initialValue : this.state.input[params.id],
-      oninput: e => {
+      defaultValue: this.state.input[params.id] === undefined ? params.initialValue : this.state.input[params.id],
+      onInput: e => {
         this.setInputValue(params.id, e.target.value);
       },
     };
@@ -113,7 +115,7 @@ abstract class Popup
         ].join(' ')
       }>
         <label className='input-group-label' htmlFor={params.id}> {params.displayTitle} </label>
-        { React.createElement(inputSelector, inputAttrs) }
+        { React.createElement(inputTag, Object.assign({className: inputClass}, inputAttrs)) }
       </div>
     );
   }
@@ -129,26 +131,23 @@ abstract class Popup
     );
   }
 
-  hidePopup() {
-    this.setState({ input: {}, active: false, });
-    this.props.disabledCallback();
-  }
-
   abstract loadPopupContent() : JSX.Element | JSX.Element[];
 
+  componentDidMount(): void {
+    window.onkeydown = e => {
+      if (e.key === 'Escape')
+        this.props.store.hidePopup();
+    };
+  }
+
   render() {
-    if (this.props.active && !this.state.active)
-      window.onkeydown = e => {
-        if (e.key === 'Escape')
-          this.hidePopup();
-      };
-    this.setState({ active: this.props.active });
+    const isActive = this.props.store.overlayActive && this.props.store.activePopupId;
 
     return (
       <div 
         className='popup-container'
         tabIndex={0}
-        style={{ display: this.state.active ? 'flex' : 'none', }}
+        style={{ display: isActive ? 'flex' : 'none', }}
       >
         <div className='popup-header'>
           <span className='popup-title'>{this.state.title}</span>
@@ -156,20 +155,20 @@ abstract class Popup
           <button 
             className='exit-view-button'
             title='Cancel'
-            onClick={this.hidePopup}
+            onClick={this.props.store.hidePopup}
           >
             {icons.exit}
           </button>
 
           <div className='popup-content'>{this.loadPopupContent()}</div>
-
-          <div className='popup-footer'>{
-            this.state.actions.map(this.createCallbackButton)
-          }</div>
         </div>
+
+        <div className='popup-footer'>{
+          this.state.actions.map(this.createCallbackButton)
+        }</div>
       </div>
     );
   }
 }
 
-export { updatePopupOverlayStatus, PopupOverlay, PopupAttrs, Popup };
+export default Popup;

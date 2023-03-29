@@ -39,7 +39,7 @@ interface LoginRes {
 
 interface LoginAttrs {
   signup: boolean;
-  navHook: NavigateFunction;
+  navigate: NavigateFunction;
 }
 
 interface LoginState {
@@ -72,7 +72,7 @@ class Login extends React.Component<LoginAttrs, LoginState> {
         if (res.uid) {
           console.log('success! ' + res.uid);
           Cookies.set('uid', res.uid, 2);
-          this.props.navHook('/main');
+          this.props.navigate('/main');
         }
       })
       .catch(window.alert)

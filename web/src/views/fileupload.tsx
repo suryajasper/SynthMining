@@ -76,10 +76,19 @@ export default class ImageUpload
     return imageIds;
   }
 
+  // updateUploadStateSynch(update: { uploading?: boolean, curr?: number, total?: number }) {
+  //   return new Promise(resolve => {
+  //     this.setState(prevState => ({
+  //       ...prevState,
+  //       ...update,
+  //     }), () => { resolve(null); });
+  //   })
+  // }
+
   async uploadImages(files : File[]) {
     const BATCH_SIZE: number = 1;
 
-    await this.setState({
+    this.setState({
       uploading: true,
       curr: 0,
       total: files.length,
@@ -100,12 +109,9 @@ export default class ImageUpload
       
       await this.uploadToServer(batch);
       
-      await this.setState(prevState => ({
-        ...prevState,
+      this.setState(prevState => ({
         curr: prevState.curr + batch.length,
       }));
-
-      //m.redraw();
     }
 
     await this.setState({

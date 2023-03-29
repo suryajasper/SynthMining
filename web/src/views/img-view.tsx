@@ -59,8 +59,10 @@ class ImageView extends React.Component<ImageDisplayAttrs> {
           <img className='image-display' src={base64ImgHeader(this.props.src)} />
           <span className='image-title'>{this.trimText(this.props.name)}</span>
           <div className='image-tag-list'>{
-            this.props.tags.map(tag => 
-              <span className='image-tag-color'
+            this.props.tags.map((tag, i) => 
+              <span 
+                className='image-tag-color'
+                key={`img-tag${i}`}
                 style={{ backgroundColor: this.props.tagById[tag].color }}
               />
             )
@@ -115,17 +117,24 @@ export default class ImageList
 
     this.iEnum = 0;
 
-    this.setState({
+    this.state = {
       selected: initArr<boolean>(this.props.images.length, false),
       last: 0,
-    });
+    };
   }
 
-  setSelection(i: number, val: boolean) {
-    this.setState(state => {
-      state.selected[i] = val;
-      return state;
-    })
+  setSelection(i: number | number[], val: boolean) {
+    return new Promise(resolve => {
+      this.setState(state => {
+        if (typeof i === 'number')
+          state.selected[i] = val;
+        else
+          for (let j = i[0]; j < i[1]; j++)
+            state.selected[j] = val;
+        
+        return state;
+      }, () => { resolve(null); })
+    });
   }
 
   componentDidUpdate() {
@@ -136,15 +145,17 @@ export default class ImageList
   }
 
   clearSelection() : void {
-    for (let i = 0; i < this.state.selected.length; i++)
-      this.setSelection(i, false);
-    this.props.changeImageSelection(this.selectedIds);
+    this.setSelection([0, this.state.selected.length], false)
+      .then(() => {
+        this.props.changeImageSelection(this.selectedIds);
+      });
   }
 
   selectAll() : void {
-    for (let i = 0; i < this.state.selected.length; i++)
-      this.setSelection(i, true);
-    this.props.changeImageSelection(this.selectedIds);
+    this.setSelection([0, this.state.selected.length], true)
+      .then(() => {
+        this.props.changeImageSelection(this.selectedIds);
+      });
   }
 
   canSelect(i) : boolean {
@@ -154,15 +165,15 @@ export default class ImageList
     );
   }
 
-  select(i: number, shiftKey?: boolean) : void {
+  async select(i: number, shiftKey?: boolean) : Promise<void> {
     let newVal : boolean = !this.state.selected[i]
 
     if (this.canSelect(i))
-      this.setSelection(i, newVal);
+      await this.setSelection(i, newVal);
     
     if (shiftKey)
       for (let j = this.state.last; j < i; j++)
-        this.setSelection(j, this.canSelect(j) && newVal);
+        await this.setSelection([this.state.last, i], this.canSelect(j) && newVal);
 
     this.setState({ last: i });
 

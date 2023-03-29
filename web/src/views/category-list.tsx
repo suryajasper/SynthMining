@@ -3,6 +3,7 @@ import '../css/tags.scss';
 import { fetchRequest, initArr } from '../utils/utils';
 import { icons } from './icons';
 import { TagAttrs } from './project-loader';
+import { PopupManagerState, withPopupStore } from './hooks/popup-state';
 
 interface CategoryViewAttrs {
   isAdmin: boolean;
@@ -62,13 +63,15 @@ function CategoryView(props: CategoryViewAttrs) {
   );
 };
 
-export interface CategorySelectionsAttrs {
+interface CategorySelectionsAttrs {
   uid: string | undefined;
   isAdmin: boolean;
   projectId: string;
 
   categories: TagAttrs[];
   activeCategories: Record<string, number>;
+
+  store: PopupManagerState;
 
   addTag: () => void;
   updateTag: (tagId: string, update: {
@@ -78,25 +81,25 @@ export interface CategorySelectionsAttrs {
   }) => void;
   removeTag: (tagId: string) => void;
 
-  updatePopupStatus: (state: {
-    name: string,
-    active: boolean,
-    data: object,
-  }) => void;
+  // updatePopupStatus: (state: {
+  //   name: string,
+  //   active: boolean,
+  //   data: object,
+  // }) => void;
   unshiftSelection: (i: number) => void;
   applyToImage: (tag: TagAttrs) => void;
 
   applyToImageMode: boolean;
 }
 
-export class CategorySelections 
+class CategorySelections 
   extends React.Component<
     CategorySelectionsAttrs, { selected: boolean[] }
   > {
 
-  constructor(props: CategorySelectionsAttrs) {
+  constructor(props) {
     super(props);
-    this.setState( { selected: [] });
+    this.state = { selected: [] };
   }
 
   setSelection(i: number, val: boolean) {
@@ -112,6 +115,7 @@ export class CategorySelections
 
     return (
       <CategoryView
+        key={`cat-item-${i}`}
         isAdmin={this.props.isAdmin}
         tagName={tag}
         selected={this.props.applyToImageMode ? false : this.state.selected[i]}
@@ -136,17 +140,13 @@ export class CategorySelections
 
         activatePopup={() => {
           console.log('activating edit tag popup with', tag);
-          this.props.updatePopupStatus({
-            name: 'editTag', 
-            active: true,
-            data: {
-              projectId: this.props.projectId,
-              uid: this.props.uid,
-              tag,
+          this.props.store.activatePopup('editTag', {
+            projectId: this.props.projectId,
+            uid: this.props.uid,
+            tag,
 
-              updateTag: this.props.updateTag,
-              removeTag: this.props.removeTag,
-            },
+            updateTag: this.props.updateTag,
+            removeTag: this.props.removeTag,
           });
         }}
       />
@@ -154,10 +154,10 @@ export class CategorySelections
   }
 
   render() {
-    if (this.state.selected.length != this.props.categories.length)
+    /*if (this.state.selected.length != this.props.categories.length)
       this.setState({ 
         selected: initArr<boolean>(this.props.categories.length, false) 
-      });
+      });*/
     
     return (
       <div className='category-container'>
@@ -171,7 +171,7 @@ export class CategorySelections
             )
             .concat((this.props.applyToImageMode || !this.props.isAdmin) ? 
               [] : (
-                <div className='category-item new-category-button selected'
+                <div key='fuck' className='category-item new-category-button selected'
                   onClick={this.props.addTag}
                 >
                   <span className='category-item-new-icon' />
@@ -184,3 +184,5 @@ export class CategorySelections
     );
   }
 }
+
+export default withPopupStore(CategorySelections);

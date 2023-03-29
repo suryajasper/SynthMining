@@ -12,7 +12,7 @@ import { EditTagPopup } from './popups/edit-tag-popup';
 import { PopupOverlay } from './popups/popup';
 import PopupManager from './popups/popup-manager';
 
-import { CategorySelections } from './category-list';
+import CategorySelections from './category-list';
 import ImageUpload from './fileupload';
 import ImageList from './img-view';
 
@@ -39,7 +39,7 @@ interface ProjectPageState {
 }
 
 export default class ProjectPage 
-extends React.Component<ProjectPageAttrs, ProjectPageState> {
+  extends React.Component<ProjectPageAttrs, ProjectPageState> {
   
   private popupManager: PopupManager;
 
@@ -72,6 +72,8 @@ extends React.Component<ProjectPageAttrs, ProjectPageState> {
       selectedImages: [],
       highlightedTags: {},
     };
+
+    this.fetchProject();
   }
 
   fetchProject() : void {
@@ -85,23 +87,25 @@ extends React.Component<ProjectPageAttrs, ProjectPageState> {
         uid: this.state.uid,
       },
     })
-      .then(async projectInfo => {
+      .then(projectInfo => {
         console.log('projectInfo', projectInfo);
 
-        await this.setState({
+        this.setState({
           isAdmin: projectInfo.patronId === this.state.uid,
           info: projectInfo,
           images: projectInfo.images.sort((a, b) => 
             Number(a.validated) - Number(b.validated)
           ),
           tags: projectInfo.tags,
+        }, () => {
+          console.log('set state', this.state);
+  
+          if (this.state.images.length > 0)
+            this.fetchImages();
+          
+          this.refreshTagColors();
+          this.refreshHighlightedCategories();
         });
-
-        if (this.state.images.length > 0)
-          this.fetchImages();
-        
-        this.refreshTagColors();
-        this.refreshHighlightedCategories();
       })
       .catch(console.error)
   }
@@ -211,15 +215,20 @@ extends React.Component<ProjectPageAttrs, ProjectPageState> {
   refreshTagColors() : void {
     if (this.state.tags.length === 0) return;
 
-    this.setState(prevState => ({
-      colors: colorGen(prevState.tags.length),
-      tags: prevState.tags 
-        .map((tag: TagAttrs, i: number) => 
-          Object.assign(tag, {
-            color: this.state.colors[i],
-          })
-        )
-    }));
+    console.log('refreshing colors bitch');
+
+    this.setState(prevState => {
+      const newColors : string[] = colorGen(prevState.tags.length);
+      return {
+        colors: newColors,
+        tags: prevState.tags 
+          .map((tag: TagAttrs, i: number) => 
+            Object.assign(tag, {
+              color: newColors[i],
+            })
+          )
+      };
+    });
   }
 
   refreshHighlightedCategories() : void {
@@ -379,11 +388,14 @@ extends React.Component<ProjectPageAttrs, ProjectPageState> {
   render() {
     return (
       <div className='project-page'>
-        <PopupOverlay disabledCallback={this.popupManager.inactivateAllPopups.bind(this.popupManager)}>
+        <PopupOverlay>
           <>{
             Object.values(this.popupManager.popups)
-              .map(popup => 
-                React.createElement(popup.view, popup.attrs)
+              .map((popup, i) => 
+                React.createElement(
+                  popup.view, 
+                  Object.assign({key: `popup-${i}`}, popup.attrs)
+                )
               )
           }</>
         </PopupOverlay>
@@ -400,13 +412,12 @@ extends React.Component<ProjectPageAttrs, ProjectPageState> {
             addTag={this.addTag.bind(this)}
             updateTag={this.updateTag.bind(this)}
             removeTag={this.removeTag.bind(this)}
-
-            updatePopupStatus={this.popupManager.updatePopupStatus.bind(this.popupManager)}
+            
             unshiftSelection={this.unshiftSelection.bind(this)}
 
             applyToImageMode={this.state.selectedImages.length > 0}
             applyToImage={this.applyTagToImages.bind(this)}
-          />,
+          />
         </div>
 
         <div className='right-container'>
