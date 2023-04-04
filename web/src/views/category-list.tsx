@@ -4,6 +4,7 @@ import { fetchRequest, initArr } from '../utils/utils';
 import { icons } from './icons';
 import { TagAttrs } from './project-loader';
 import { PopupManagerState, withPopupStore } from './hooks/popup-state';
+import { EditTagDataSchema } from './popups/edit-tag-popup';
 
 interface CategoryViewAttrs {
   isAdmin: boolean;
@@ -139,8 +140,7 @@ class CategorySelections
         }}
 
         activatePopup={() => {
-          console.log('activating edit tag popup with', tag);
-          this.props.store.activatePopup('editTag', {
+          this.props.store.activatePopup<EditTagDataSchema>('editTag', {
             projectId: this.props.projectId,
             uid: this.props.uid,
             tag,

@@ -2,7 +2,7 @@ import React from 'react';
 import { fetchRequest } from '../../utils/utils';
 import Popup, { PopupAttrs } from './popup';
 import { TagAttrs } from '../project-loader';
-import { withPopupStore } from '../hooks/popup-state';
+import { PopupManagerState, withPopupStore } from '../hooks/popup-state';
 
 interface EditTagDataSchema {
   tag: TagAttrs;
@@ -17,19 +17,14 @@ interface EditTagDataSchema {
   removeTag: (tagId: string) => void;
 }
 
-export interface EditTagPopupAttrs extends PopupAttrs {
-  active: boolean;
-  data: EditTagDataSchema | undefined;
-}
-
-class BaseEditTagPopup extends Popup {
+class BaseEditTagPopup extends Popup<EditTagDataSchema> {
   private tagId: string | undefined;
   private uid: string | undefined;
   private projectId: string | undefined;
 
   private data: EditTagDataSchema;
 
-  constructor(props: EditTagPopupAttrs) {
+  constructor(props: PopupAttrs<EditTagDataSchema>) {
     super(props);
   }
 
@@ -43,11 +38,7 @@ class BaseEditTagPopup extends Popup {
   }
 
   componentDidUpdate(): void {
-    this.data = this.props.store.data as EditTagDataSchema;
-    this.tagId = this.data?.tag?._id;
-
-    this.projectId = this.props.data?.projectId;
-    this.uid = this.props.data?.uid;
+    
   }
 
   saveTag(): void {
@@ -64,25 +55,38 @@ class BaseEditTagPopup extends Popup {
     this.props.store.hidePopup();
   }
 
-  loadPopupContent(): JSX.Element[] {
-    let tag = this.data?.tag;
+  override onPopupActivate(): void {
+    this.data = this.props.store.data as EditTagDataSchema;
+    console.log('update', this.data);
+    this.tagId = this.data?.tag?._id;
 
-    // this.setState({ title: `Edit ${tag?.name}` });
+    this.projectId = this.props.data?.projectId;
+    this.uid = this.props.data?.uid;
+
+    this.setState({ title: `Edit Tag "${this.data.tag?.name}"` });
+  }
+
+  override loadPopupContent(): JSX.Element[] {
+    let tag = this.data?.tag;
+    console.log('loading popup content', tag);
 
     return [
       this.createInputGroup({
         id: 'tagName',
+        placeholder: 'Tag Name',
         displayTitle: 'Name',
         initialValue: tag?.name || '',
       }),
       this.createInputGroup({
         id: 'goalQty',
+        placeholder: '200',
         displayTitle: 'Goal Quantity',
         type: 'number',
         initialValue: tag?.goalQty?.toString() || '',
       }),
       this.createInputGroup({
         id: 'tagDescription',
+        placeholder: 'Brief description of your tag for other users',
         displayTitle: 'Description',
         type: 'textarea',
         initialValue: tag?.description || '',
@@ -92,4 +96,4 @@ class BaseEditTagPopup extends Popup {
 }
 
 const EditTagPopup = withPopupStore(BaseEditTagPopup);
-export { EditTagPopup };
+export { EditTagDataSchema, EditTagPopup };

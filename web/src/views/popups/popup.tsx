@@ -37,8 +37,8 @@ export function PopupOverlay(props: PopupOverlayAttrs) {
   );
 }
 
-export interface PopupAttrs {
-  data: any;
+export interface PopupAttrs<DataSchema extends unknown> {
+  data: DataSchema;
   
   reloadCallback(): void;
 }
@@ -63,11 +63,16 @@ interface PopupState {
   actions: PopupAction[];
 }
 
-abstract class Popup
-  extends React.Component<PopupAttrs & { store: PopupManagerState }, PopupState> {
+abstract class Popup<DataSchema>
+  extends React.Component<PopupAttrs<DataSchema> & { store: PopupManagerState }, PopupState> {
+
+  private lastActive: boolean;
+  private activated: boolean;
   
   constructor(props) {
     super(props);
+
+    this.lastActive = false;
 
     this.state = {
       input: {},
@@ -89,14 +94,12 @@ abstract class Popup
     params.placeholder = params.placeholder || '';
     params.displayTitle = params.displayTitle || params.id;
 
-    let inputSelector : string = params.type === 'textarea' ? 
-      'textarea.input-group-textarea' : 'input.input-group-input';
-    let inputTag = inputSelector.split('.')[0];
-    let inputClass = inputSelector.split('.')[1];
+    let inputSelector : string = params.type === 'textarea' ? 'textarea.input-group-textarea' : 'input.input-group-input';
+    let [inputTag, inputClass] = inputSelector.split('.');
     
-    if (this.state.active && this.state.input[params.id] === undefined) {
+    
+    if (this.lastActive && this.state.input[params.id] === undefined) 
       this.setInputValue(params.id, params.initialValue);
-    }
 
     let inputAttrs = {
       name: params.id, 
@@ -131,6 +134,14 @@ abstract class Popup
     );
   }
 
+  onPopupActivate() : void {};
+
+  onPopupDestroy() : void {
+    this.setState({
+      input: {},
+    })
+  }
+
   abstract loadPopupContent() : JSX.Element | JSX.Element[];
 
   componentDidMount(): void {
@@ -141,13 +152,20 @@ abstract class Popup
   }
 
   render() {
-    const isActive = this.props.store.overlayActive && this.props.store.activePopupId;
+    const isActive = Boolean(this.props.store.overlayActive && this.props.store.activePopupId);
+
+    let activated = !this.lastActive &&  isActive;
+    let destroyed =  this.lastActive && !isActive;
+
+    if (activated) this.onPopupActivate();
+    if (destroyed) this.onPopupDestroy();
+
+    this.lastActive = isActive;
 
     return (
-      <div 
+      isActive && <div 
         className='popup-container'
         tabIndex={0}
-        style={{ display: isActive ? 'flex' : 'none', }}
       >
         <div className='popup-header'>
           <span className='popup-title'>{this.state.title}</span>
@@ -159,9 +177,9 @@ abstract class Popup
           >
             {icons.exit}
           </button>
-
-          <div className='popup-content'>{this.loadPopupContent()}</div>
         </div>
+
+        <div className='popup-content'>{this.loadPopupContent()}</div>
 
         <div className='popup-footer'>{
           this.state.actions.map(this.createCallbackButton)

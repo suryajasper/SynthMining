@@ -8,8 +8,6 @@ import Login from './views/login';
 import Main from './views/main';
 import ProjectPage from './views/project-page';
 
-const HelloWorld = () => <div>{"Fuck"}</div>
-
 function App() {
   return (
     <BrowserRouter>

@@ -8,7 +8,7 @@ interface PopupManagerState {
   data: object,
 
   hidePopup() : void;
-  activatePopup(id: string, newData?: object) : void;
+  activatePopup<T>(id: string, newData?: T) : void;
 }
 
 const usePopupStore = create<PopupManagerState>(set => ({
@@ -19,9 +19,10 @@ const usePopupStore = create<PopupManagerState>(set => ({
   hidePopup: () => set(state => ({
     overlayActive: false,
     activePopupId: null,
+    data: {},
   })),
 
-  activatePopup: (id: string, newData?: object) => set(state => ({
+  activatePopup: <T extends unknown>(id: string, newData?: T) => set(state => ({
     overlayActive: true,
     activePopupId: id,
     data: newData || {},

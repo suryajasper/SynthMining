@@ -2,7 +2,7 @@ import { PopupAttrs } from '../popups/popup';
 
 type PopupRecord = Record<string, {
   view: any,
-  attrs: PopupAttrs,
+  attrs: PopupAttrs<any>,
 }>
 
 export default class PopupManager {
@@ -23,7 +23,7 @@ export default class PopupManager {
     if (!this.reloadCallback) 
       throw new Error("Reload Callback Not Initialized");
 
-    const attrs : PopupAttrs = {
+    const attrs : PopupAttrs<object> = {
       data: undefined,
       
       reloadCallback: this.reloadCallback,

@@ -21,6 +21,7 @@
     "axios": "^1.3.3",
     "express": "^4.18.2",
     "html-webpack-plugin": "^5.5.0",
+    "http": "^0.0.1-security",
     "iwanthue": "^2.0.0",
     "mithril": "^2.2.2",
     "mongoose": "^6.9.0",
