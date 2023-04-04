@@ -171,26 +171,23 @@ export default class ProjectPage
         tagId,
       }
     })
-      .then(async res => {
-        let i : number;
-
-        // remove tag from tag list
-        for (i = 0; i < this.state.tags.length; i++)
-          if (this.state.tags[i]._id === tagId)
-            await this.setState(({tags}) => {
+      .then(res => {
+        this.setState(({tags, images}) => {
+          let i : number;
+          
+          // remove tag from tag list
+          for (i = 0; i < tags.length; i++)
+            if (tags[i]._id === tagId)
               tags.splice(i, 1);
-              return { tags };
-            });
-        
-        // remove tag from images that include it
-        for (i = 0; i < this.state.images.length; i++) {
-          let tagIndex = this.state.images[i].tags.indexOf(tagId);
-          if (tagIndex !== -1)
-            await this.setState(({images}) => {
+              
+          // remove tag from images that include it
+          for (i = 0; i < images.length; i++) {
+            let tagIndex = images[i].tags.indexOf(tagId);
+
+            if (tagIndex !== -1)
               images[i].tags.splice(tagIndex, 1);
-              return { images };
-            })
-        }
+          }
+        });
       })
   }
 
