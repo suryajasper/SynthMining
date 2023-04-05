@@ -1,79 +1,92 @@
-import m from 'mithril';
+import React from 'react';
 import { fetchRequest } from '../../utils/utils';
-import { Popup, PopupAttrs } from './popup';
-import { icons } from '../icons';
+import Popup, { PopupAttrs } from './popup';
 import { TagAttrs } from '../project-loader';
+import { PopupManagerState, withPopupStore } from '../hooks/popup-state';
 
-export interface EditTagPopupAttrs extends PopupAttrs {
-  active: boolean;
-  data: {
-    tag: TagAttrs;
-    projectId: string;
-    uid: string;
+interface EditTagDataSchema {
+  tag: TagAttrs;
+  projectId: string;
+  uid: string;
 
-    updateTag: (tagId: string, update: {
-      name: string,
-      description: string,
-      goalQty: number,
-    }) => void;
-    removeTag: (tagId: string) => void;
-  } | undefined;
+  updateTag: (tagId: string, update: {
+    name: string,
+    description: string,
+    goalQty: number,
+  }) => void;
+  removeTag: (tagId: string) => void;
 }
 
-export class EditTagPopup extends Popup implements m.ClassComponent<EditTagPopupAttrs> {
+class BaseEditTagPopup extends Popup<EditTagDataSchema> {
   private tagId: string | undefined;
   private uid: string | undefined;
   private projectId: string | undefined;
 
-  constructor(vnode: m.CVnode<EditTagPopupAttrs>) {
-    super();
+  private data: EditTagDataSchema;
 
-    this.actions = [
-      {name: 'Save', res: () => this.saveTag(vnode)},
-      {name: 'Remove', res: () => this.removeTag(vnode)},
-    ];
+  constructor(props: PopupAttrs<EditTagDataSchema>) {
+    super(props);
   }
 
-  onupdate({attrs}: m.CVnodeDOM<EditTagPopupAttrs>): void {
-    this.tagId = attrs.data?.tag._id;
-    this.projectId = attrs.data?.projectId;
-    this.uid = attrs.data?.uid;
-  }
-
-  saveTag(vnode: m.CVnode<EditTagPopupAttrs>): void {
-    vnode.attrs.data.updateTag(this.tagId, {
-      name: this.input['tagName'],
-      description: this.input['tagDescription'],
-      goalQty: parseInt(this.input['goalQty']),
+  componentDidMount(): void {
+    this.setState({
+      actions: [
+        { name: 'Save', res: this.saveTag.bind(this) },
+        { name: 'Remove', res: this.removeTag.bind(this) },
+      ],
     });
-    this.hidePopup(vnode);
   }
 
-  removeTag(vnode: m.CVnode<EditTagPopupAttrs>): void {
-    vnode.attrs.data.removeTag(this.tagId);
-    this.hidePopup(vnode);
+  componentDidUpdate(): void {
+    
   }
 
-  loadPopupContent({attrs}: m.CVnode<EditTagPopupAttrs>): m.Children {
-    let tag = attrs.data?.tag;
+  saveTag(): void {
+    this.data.updateTag(this.tagId, {
+      name: this.state.input['tagName'],
+      description: this.state.input['tagDescription'],
+      goalQty: parseInt(this.state.input['goalQty']),
+    });
+    this.props.store.hidePopup();
+  }
 
-    this.title = `Edit ${tag?.name}`;
-    m.redraw();
+  removeTag(): void {
+    this.data.removeTag(this.tagId);
+    this.props.store.hidePopup();
+  }
+
+  override onPopupActivate(): void {
+    this.data = this.props.store.data as EditTagDataSchema;
+    console.log('update', this.data);
+    this.tagId = this.data?.tag?._id;
+
+    this.projectId = this.props.data?.projectId;
+    this.uid = this.props.data?.uid;
+
+    this.setState({ title: `Edit Tag "${this.data.tag?.name}"` });
+  }
+
+  override loadPopupContent(): JSX.Element[] {
+    let tag = this.data?.tag;
+    console.log('loading popup content', tag);
 
     return [
       this.createInputGroup({
         id: 'tagName',
+        placeholder: 'Tag Name',
         displayTitle: 'Name',
         initialValue: tag?.name || '',
       }),
       this.createInputGroup({
         id: 'goalQty',
+        placeholder: '200',
         displayTitle: 'Goal Quantity',
         type: 'number',
         initialValue: tag?.goalQty?.toString() || '',
       }),
       this.createInputGroup({
         id: 'tagDescription',
+        placeholder: 'Brief description of your tag for other users',
         displayTitle: 'Description',
         type: 'textarea',
         initialValue: tag?.description || '',
@@ -81,3 +94,6 @@ export class EditTagPopup extends Popup implements m.ClassComponent<EditTagPopup
     ];
   }
 }
+
+const EditTagPopup = withPopupStore(BaseEditTagPopup);
+export { EditTagDataSchema, EditTagPopup };

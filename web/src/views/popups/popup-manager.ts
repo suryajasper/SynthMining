@@ -1,10 +1,8 @@
-import m from 'mithril';
-
-import { Popup, PopupAttrs, updatePopupOverlayStatus } from '../popups/popup';
+import { PopupAttrs } from '../popups/popup';
 
 type PopupRecord = Record<string, {
   view: any,
-  attrs: PopupAttrs,
+  attrs: PopupAttrs<any>,
 }>
 
 export default class PopupManager {
@@ -25,11 +23,9 @@ export default class PopupManager {
     if (!this.reloadCallback) 
       throw new Error("Reload Callback Not Initialized");
 
-    const attrs : PopupAttrs = {
-      active: true,
+    const attrs : PopupAttrs<object> = {
       data: undefined,
-
-      disabledCallback: this.inactivateAllPopups.bind(this),
+      
       reloadCallback: this.reloadCallback,
     };
 
@@ -37,32 +33,5 @@ export default class PopupManager {
       view: popupView,
       attrs,
     }
-  }
-
-  isPopupActive() : boolean {
-    return Object.values(this.popups)
-      .map(popup => popup.attrs.active)
-      .reduce((a, b) => a || b);
-  }
-
-  inactivateAllPopups() : void {
-    updatePopupOverlayStatus({ active: false });
-
-    Object.values(this.popups).forEach(popup => {
-      popup.attrs.active = false;
-    })
-  }
-
-  updatePopupStatus({ name, active, data }) : void {
-    if (!this.popups[name]) 
-      return;
-    
-    this.inactivateAllPopups();
-    updatePopupOverlayStatus({ active });
-
-    this.popups[name].attrs.active = active;
-    this.popups[name].attrs.data = data;
-
-    m.redraw();
   }
 }
