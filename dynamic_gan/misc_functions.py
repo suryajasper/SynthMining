@@ -11,15 +11,15 @@ import matplotlib.pyplot as plt
 
 # user it.resizer(filename)
 def to_tensor(file_list, image_size, test_size):
-    img_dir_name = './dynamic_gan/celeba/img_align_celeba'
+    img_dir_name = 'celeba/img_align_celeba'
     tensors = []
     file1 = open(file_list, 'r')
     for filename in file1.readlines()[:test_size]:
         filename = filename.strip()
         out_tensor = torch.zeros(3)
-        image = Image.open(os.path.join(img_dir_name,filename))
-        scaled = TF.resize(image, size=image_size) # scale image
-        minDim = min(scaled.size) # find min dimension
+        image = Image.open(os.path.join(img_dir_name, filename))
+        scaled = TF.resize(image, size=image_size)  # scale image
+        minDim = min(scaled.size)  # find min dimension
         cropped = TF.center_crop(scaled, output_size=minDim) # use min dimension to crop
     
         # transform from image to tensor
