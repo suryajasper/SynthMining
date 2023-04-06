@@ -26,7 +26,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
-  entry: './src/index.ts',
+  entry: './src/index.jsx',
   mode: 'development',
   plugins: [
     new webpack.ProgressPlugin(),
@@ -72,7 +72,10 @@ module.exports = {
           {
             loader: 'babel-loader',   
             options: {
-              presets: ['@babel/preset-typescript']
+              presets: [
+                '@babel/preset-typescript',
+                '@babel/preset-react',
+              ]
             }         
           },
         ],

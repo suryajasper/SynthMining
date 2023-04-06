@@ -66,15 +66,15 @@ real_label = 1.
 fake_label = 0.
 
 # Number of training epochs
-num_epochs = 10000
+num_epochs = 40
 
 ## ** STREAMING IN TRAINING DATA **
 # G(z) <ON REAL>
 
-test_size = len(data_mnist) // 100  # start small. This is 600 data
+test_size = len(data_mnist) // 1  # start small. This is 600 data
 real_set = to_tensor(data_mnist, image_size=image_size, test_size=test_size, to3colorlayer=True)
 # convert real_set into batches
-batch_size = 20
+batch_size = 156
 batchs = len(real_set) // batch_size
 img_batches = to_batches(real_set, batch_size)
 

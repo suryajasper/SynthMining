@@ -4,9 +4,10 @@
     "lib": [
       "es2015.promise", "dom"
     ],
+    "jsx": "react-jsx",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", "src/index.jsx"],
   "exclude": ["node_modules"]
 }
