@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
-import torch.utils.data 
+import torch.utils.data as tdata
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
@@ -27,7 +27,6 @@ manualSeed = 999
 print("Random Seed: ", manualSeed)
 random.seed(manualSeed)
 torch.manual_seed(manualSeed)
-
 
 # ** MODEL INITIALIZTION **
 # Number of channels in the training images. COLOR CHANNELS
@@ -77,7 +76,8 @@ class Generator(nn.Module):
                 out_channels=ngf * 4,
                 kernel_size=4, 
                 stride=2, 
-                padding=1, bias=False),
+                padding=1, bias=False
+            ),
             nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
             # state size. (gen_dimesions*4) x 8 x 8
@@ -86,7 +86,8 @@ class Generator(nn.Module):
                 out_channels=ngf * 2,
                 kernel_size=4, 
                 stride=2, 
-                padding=1, bias=False),
+                padding=1, bias=False
+            ),
             nn.BatchNorm2d(ngf * 2),
             nn.ReLU(True),
             # state size. (gen_dimesions*2) x 16 x 16
@@ -96,7 +97,8 @@ class Generator(nn.Module):
                 kernel_size=4,
                 stride= 2, 
                 padding=1, 
-                bias=False),
+                bias=False
+            ),
             nn.BatchNorm2d(ngf),
             nn.ReLU(True),
             # state size. (gen_dimesions) x 32 x 32
@@ -129,7 +131,8 @@ class Discriminator(nn.Module):
                 kernel_size=4, 
                 stride=2, 
                 padding=1, 
-                bias=False),
+                bias=False
+            ),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndvf) x 32 x 32
             nn.Conv2d(
@@ -138,7 +141,8 @@ class Discriminator(nn.Module):
                 kernel_size=4, 
                 stride=2, 
                 padding=1, 
-                bias=False),
+                bias=False
+            ),
             nn.BatchNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*2) x 16 x 16
@@ -148,7 +152,8 @@ class Discriminator(nn.Module):
                 kernel_size=4, 
                 stride=2, 
                 padding=1, 
-                bias=False),
+                bias=False
+            ),
             nn.BatchNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*4) x 8 x 8
@@ -158,7 +163,8 @@ class Discriminator(nn.Module):
                 kernel_size=4, 
                 stride=2, 
                 padding=1, 
-                bias=False),
+                bias=False
+            ),
             nn.BatchNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*8) x 4 x 4
@@ -168,7 +174,8 @@ class Discriminator(nn.Module):
                 kernel_size=4, 
                 stride=1, 
                 padding=0, 
-                bias=False),
+                bias=False
+            ),
             nn.Sigmoid()
         )
 
@@ -176,7 +183,8 @@ class Discriminator(nn.Module):
         return self.main(input)
 
 # Device Specification
-device = torch.device('cpu')
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # ** INSTANTIATING G() AND D()
 # Create models
@@ -221,15 +229,30 @@ num_epochs = 40
 
 ## ** STREAMING IN TRAINING DATA ** 
 # G(z) <ON REAL>
-file_list = "./trainer_set.txt"
-test_size = 7019
-real_set = mf.to_tensor(file_list, image_size=image_size, test_size=test_size)
+test_size = 10_000
+batch_size = 128
+
+training_dir = "C:\\Users\\surya\\Downloads\\celeb_imgs"
+# real_set = mf.imgdir_to_tensors(training_dir, image_size, test_size)
+
+dataset = dset.ImageFolder(root=training_dir,
+                           transform=transforms.Compose([
+                               transforms.Resize(image_size),
+                               transforms.CenterCrop(image_size),
+                               transforms.ToTensor(),
+                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                           ]))
+
+# truncate dataset based on maximum dataset size
+rand_indices = np.random.choice(len(dataset), test_size, replace=False)
+trunc_dataset = tdata.Subset(dataset=dataset, indices=rand_indices)
+
+# Create the dataloader
+dataloader = tdata.DataLoader(dataset=trunc_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 
 # convert real_set into batches
-batch_size = 20
-batchs = len(real_set) // batch_size
-img_batches = mf.to_batches(real_set, batch_size)
-
+# batchs = len(real_set) // batch_size
+# img_batches = mf.to_batches(real_set, batch_size)
 
 ## ** RECORD KEEPING ** 
 img_list = [] 
@@ -242,7 +265,7 @@ print("Starting Training Loop...")
 # For each epoch (training cycle)
 for epoch in range(num_epochs):
     # For each batch in the img_batches
-    for i, batch in enumerate(img_batches): # image_convert is the list of images as 1D tensors 
+    for i, data in enumerate(dataloader): # image_convert is the list of images as 1D tensors 
         
         ############################
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z))) 
@@ -251,17 +274,17 @@ for epoch in range(num_epochs):
         ## TRAIN D INDEPENDANTLY (all real batch)
         netD.zero_grad() # reset gradients 
         # format batch
-        real_cpu = batch.to(device)
+        real_batch = data[0].to(device)
         
-        b_size = real_cpu.size(0)
+        b_size = real_batch.size(0)
         
         # target tensor
         label = torch.full((b_size,), real_label, dtype=torch.float, device=device) 
         # Forward pass real batch through D
         
-        output = netD(real_cpu).view(-1)
-        print('Discriminator from real target: ', label)
-        print('Discriminator from real test: ', output)
+        output = netD(real_batch).view(-1)
+        # print('Discriminator from real target: ', label)
+        # print('Discriminator from real test: ', output)
         # Calculate loss on all-real batch
         errD_real = criterion(output, label)
         # Calculate gradients for D in backward pass
@@ -271,16 +294,16 @@ for epoch in range(num_epochs):
 
         ## TRAIN G INDEPENANTLY (all-fake batch)
         # Generate batch of latent vectors
-        noise = torch.randn(batch_size, noise_size, 1, 1, device=device) # random 1D tensor
+        noise = torch.randn(b_size, noise_size, 1, 1, device=device) # random 1D tensor
         # Generate fake image batch with G
         fake = netG(noise)
         label.fill_(fake_label)
         # Classify all fake batch with D
-        output = netD(fake.detach())
-        print('Generator from fake target: ', label)
-        print('Generator from fake test: ', output)
+        output = netD(fake.detach()).view(-1)
+        # print('Generator from fake target: ', label)
+        # print('Generator from fake test: ', output)
         # Calculate D's loss on the all-fake batch
-        errD_fake = criterion(output.squeeze(1).squeeze(1).squeeze(1), label )
+        errD_fake = criterion(output, label)
         # Calculate the gradients for this batch, accumulated (summed) with previous gradients
         errD_fake.backward()
         D_G_z1 = output.mean().item()
@@ -298,8 +321,8 @@ for epoch in range(num_epochs):
         label.fill_(real_label)  # fake labels are real for generator cost
         # Since we just updated D, perform another forward pass of all-fake batch through D
         output = netD(fake).view(-1)
-        print('Real Values: ', label)
-        print('Generator from fake test: ', output)
+        # print('Real Values: ', label)
+        # print('Generator from fake test: ', output)
         # Calculate G's loss based on this output
         errG = criterion(output, label)
         # Calculate gradients for G
@@ -311,7 +334,7 @@ for epoch in range(num_epochs):
         # Output training stats
         if i % 10 == 0:
             print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f'
-                  % (epoch+8, num_epochs, i, len(img_batches),
+                  % (epoch, num_epochs, i, len(dataloader),
                      errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
 
         # Save Losses for plotting later
@@ -319,13 +342,13 @@ for epoch in range(num_epochs):
         D_losses.append(errD.item())
 
         # Check how the generator is doing by saving G's output on fixed_noise
-        if (iters % 500 == 0) or ((epoch == num_epochs-1) and (i == len(img_batches)-1)):
+        if (iters % 500 == 0) or ((epoch == num_epochs-1) and (i == len(dataloader)-1)):
             with torch.no_grad():
-                fake = netG(fixed_noise).detach().cpu()
-            img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
+                comp_buffer = netG(fixed_noise).detach()
+                fake = comp_buffer.cuda() #if torch.cuda.is_available() else comp_buffer.cpu()
+            
+            gen_img = vutils.make_grid(fake, padding=2, normalize=True)
+            vutils.save_image(gen_img, f'./out/run4/e{epoch}_i{iters}.png')
+            img_list.append(gen_img)
 
         iters += 1
-
-
-
-
