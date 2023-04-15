@@ -232,7 +232,7 @@ num_epochs = 40
 test_size = 10_000
 batch_size = 128
 
-training_dir = "C:\\Users\\surya\\Downloads\\celeb_imgs"
+training_dir = "~/Documents/Spring2023/SynthMining/dynamic_gan/celeba/img_align_celeba"
 # real_set = mf.imgdir_to_tensors(training_dir, image_size, test_size)
 
 dataset = dset.ImageFolder(root=training_dir,

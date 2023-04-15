@@ -1,9 +1,10 @@
 from src.Discriminator import Discriminator
 from src.Generator import Generator
-import torch
+import torch.utils.data as tdata
 import torchvision
 from src.misc import *
 from matplotlib import pyplot as plt
+import numpy as np
 
 
 # setup machine
@@ -33,16 +34,25 @@ generator.apply(weights_init)
 discriminator.apply(weights_init)
 
 # debug
-print(generator)
-print(discriminator)
+# print(generator)
+# print(discriminator)
 
 # load data
-data_mnist = torchvision.datasets.MNIST(root="./nosync_data/mnist/", train=True, download=True, transform=None)
-data_mnist = [i[0] for i in data_mnist]  # simplified to list of PIL.Image
-#
+# label = 0
+transform_fn = transforms.Compose([
+    transforms.Grayscale(num_output_channels=3),  # convert to 3 layer for grayscale or b&w img
+    transforms.Resize(image_size),  # resize to 64x64
+    transforms.CenterCrop(image_size),  # crop img at center. Not sure why needed
+    transforms.ToTensor(),  # convert PIL to tensor
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+# load mnist data, specify which label to use then subset
+# data_mnist = torchvision.datasets.MNIST(root="./nosync_data/mnist/", train=True, download=True, transform=transform_fn)
+data_mnist = torchvision.datasets.FashionMNIST(root="./nosync_data/mnist/", train=True, download=True, transform=transform_fn)
+# indices = torch.where(data_mnist.targets == label)[0]
+# train_data_mnist = torch.utils.data.Subset(data_mnist, indices)
+train_data_mnist = data_mnist
 
 # ** LOSS AND OPTIMIZATION **
-
 # Initialize BCELoss function
 criterion = torch.nn.BCELoss()
 
@@ -66,17 +76,17 @@ real_label = 1.
 fake_label = 0.
 
 # Number of training epochs
-num_epochs = 40
+num_epochs = 20
 
 ## ** STREAMING IN TRAINING DATA **
 # G(z) <ON REAL>
+batch_size = 128
+train_size = len(train_data_mnist)//batch_size*batch_size  # make sure there's enough data in a batch
 
-test_size = len(data_mnist) // 1  # start small. This is 600 data
-real_set = to_tensor(data_mnist, image_size=image_size, test_size=test_size, to3colorlayer=True)
-# convert real_set into batches
-batch_size = 156
-batchs = len(real_set) // batch_size
-img_batches = to_batches(real_set, batch_size)
+# Create the dataloader
+rand_indices = np.random.choice(len(train_data_mnist), train_size, replace=False)
+trunc_dataset = tdata.Subset(dataset=train_data_mnist, indices=rand_indices)
+dataloader = tdata.DataLoader(dataset=trunc_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 
 ## ** RECORD KEEPING **
 img_list = []
@@ -90,8 +100,7 @@ print("Starting Training Loop...")
 # For each epoch (training cycle)
 for epoch in range(num_epochs):
     # For each batch in the img_batches
-    for i, batch in enumerate(img_batches):  # image_convert is the list of images as 1D tensors
-
+    for i, data in enumerate(dataloader):  # image_convert is the list of images as 1D tensors
         ############################
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
         ###########################
@@ -99,7 +108,7 @@ for epoch in range(num_epochs):
         ## TRAIN D INDEPENDANTLY (all real batch)
         discriminator.zero_grad()  # reset gradients
         # format batch
-        real_cpu = batch.to(device)
+        real_cpu = data[0].to(device)
         b_size = real_cpu.size(0)
         # target tensor
         label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
@@ -157,7 +166,7 @@ for epoch in range(num_epochs):
         # Output training stats
         if i % 10 == 0:
             print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f'
-                  % (epoch + 8, num_epochs, i, len(img_batches),
+                  % (epoch, num_epochs, i, len(dataloader),
                      errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
 
         # Save Losses for plotting later
@@ -165,9 +174,13 @@ for epoch in range(num_epochs):
         D_losses.append(errD.item())
 
         # Check how the generator is doing by saving G's output on fixed_noise
-        if (iters % 500 == 0) or ((epoch == num_epochs - 1) and (i == len(img_batches) - 1)):
+        if (iters % 100 == 0) or ((epoch == num_epochs - 1) and (i == len(dataloader) - 1)):
             with torch.no_grad():
-                fake = generator(fixed_noise).detach().cpu()
+                comp_buffer = generator(fixed_noise).detach()
+                fake = comp_buffer.cuda()  # if torch.cuda.is_available() else comp_buffer.cpu()
+
+            gen_img = torchvision.utils.make_grid(fake, padding=2, normalize=True)
+            torchvision.utils.save_image(gen_img, './nosync_data/generated/clothes/e{}_i{}.png'.format(epoch, iter))
             img_list.append(torchvision.utils.make_grid(fake, padding=2, normalize=True))
 
         iters += 1
