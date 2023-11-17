@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import '../../css/popup.scss';
 import { icons } from '../icons';
 import { PopupManagerState, usePopupStore, withPopupStore } from '../hooks/popup-state';
@@ -15,7 +15,10 @@ interface PopupOverlayAttrs {
   children: JSX.Element[] | JSX.Element;
 }
 
-export function PopupOverlay(props: PopupOverlayAttrs) {
+const classNames = (classObj: Record<string, boolean>) => Object.entries(classObj)
+  .filter(([key, value]) => value).map(([className, value]) => className).join(' ');
+
+export const PopupOverlay = (props: PopupOverlayAttrs) => {
   // const [prevActive, setPrevActive] = useState(false);
 
   // if (prevActive !== popupStatus.active && !popupStatus.active)

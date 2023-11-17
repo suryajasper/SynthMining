@@ -4,13 +4,11 @@ interface IconAttrs {
   path: string;
 }
 
-function Icon(props: IconAttrs) {
-  return (
-    <svg className="svg-icon" viewBox="0 0 24 24">
-      <path d={props.path} />
-    </svg>
-  );
-}
+const Icon = (props: IconAttrs) => (
+  <svg className="svg-icon" viewBox="0 0 24 24">
+    <path d={props.path} />
+  </svg>
+);
 
 const icons = {
 

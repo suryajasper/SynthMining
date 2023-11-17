@@ -1,0 +1,14 @@
+__pycache__/
+.vscode/
+*.pyc
+*.so
+*.pkl
+
+imgs/**
+*images/**
+*.jpg
+*.png
+
+*.venv
+.venv
+training-runs
