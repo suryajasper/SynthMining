@@ -51,7 +51,7 @@ num_epochs = 1000
 batch_size = args.batch_size
 
 dataset = MultiClassDataset(data_path=args.data,
-                            category_max=20,
+                            category_max=batch_size,
                             transform=transforms.Compose([
                                 transforms.Resize(args.image_size),
                                 transforms.CenterCrop(args.image_size),
@@ -67,8 +67,11 @@ lr = 0.0002
 beta1 = 0.5
 
 # initialize networks
-netG = Generator(n_categories=dataset.num_labels, noise_size=args.noise_size).to(device)
-netD = Discriminator(n_categories=dataset.num_labels).to(device)
+netG = Generator(n_categories=dataset.num_labels, noise_size=args.noise_size, img_size=args.image_size).to(device)
+netD = Discriminator(n_categories=dataset.num_labels, img_size=args.image_size).to(device)
+
+print(netG)
+print(netD)
 
 # randomly initialize network weights
 netG.apply(torch_utils.weights_init)
